@@ -1,5 +1,5 @@
 "use client";
-
+import { GoogleGenAI } from '@google/genai';
 import { useState, useEffect, useRef, useCallback } from "react";
 
 // ─── Material Catalog (90 items) ──────────────────────────────────────────────
@@ -418,29 +418,53 @@ function AIPanel({ open, onClose, branches }) {
   const hasData = branches.some(b => b.hasData);
   const totals = branches.reduce((acc, b) => ({ co2: acc.co2 + b.co2, elec: acc.elec + b.elec, entries: acc.entries + b.entries }), { co2: 0, elec: 0, entries: 0 });
 
-  const getResponse = () => {
-    if (!hasData) return "ยังไม่มีข้อมูลครับ กรุณากรอกข้อมูลหรืออัปโหลดไฟล์ในหน้า Upload ก่อนครับ 📝";
-    const rs = [
-      `Carbon Emission รวม ${totals.co2.toFixed(2)} tCO₂e จาก ${totals.entries} รายการ 🌱`,
-      `สาขาที่มี Score สูงสุด: ${[...branches].filter(b => b.hasData).sort((a, b) => b.score - a.score)[0]?.name || "—"}`,
-      `Carbon Credit รวม ${Math.round(totals.co2 * 2.4)} credits มูลค่าราว ฿${(Math.round(totals.co2 * 2.4) * 2000).toLocaleString()} บาท 💰`,
-      `ไฟฟ้ารวม ${totals.elec.toLocaleString()} kWh ⚡`,
-    ];
-    return rs[Math.floor(Math.random() * rs.length)];
-  };
-
-  const send = () => {
+ const send = async () => {
     if (!input.trim()) return;
     const txt = input.trim();
     setInput("");
-    setMsgs(m => [...m, { type: "user", text: txt }, { type: "bot", text: "…", loading: true }]);
-    setTimeout(() => {
+
+    // 1. แสดงข้อความของฝั่งยูสเซอร์ และใส่สถานะกำลังโหลด (...)
+    setMsgs(m => [...m, { type: "user", text: txt }, { type: "bot", text: "...", loading: true }]);
+
+    try {
+      // 2. เรียกใช้งาน Gemini SDK โดยส่ง API Key ผ่าน Environment Variable
+      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
+      
+      // ตั้งค่าบริบทข้อมูลองค์กร (Context) ส่งพ่วงไปพร้อมกับคำถาม
+      const systemContext = `
+        คุณคือ AI Sustainability Assistant ของบริษัท Hillkoff 
+        นี่คือข้อมูลสรุปสถานะ ESG และ Carbon Footprint ปัจจุบันขององค์กร:
+        - มีการกรอกข้อมูลแล้วหรือไม่: ${hasData ? "มีแล้ว" : "ยังไม่มีข้อมูล"}
+        - คาร์บอนรวมทั้งองค์กร: ${totals.co2.toFixed(2)} tCO2e
+        - การใช้ไฟฟ้ารวม: ${totals.elec.toLocaleString()} kWh
+        - จำนวนรายการบันทึก: ${totals.entries} รายการ
+        จงตอบคำถามผู้ใช้ด้วยข้อมูลเหล่านี้อย่างเป็นมิตร สรุปใจความชัดเจน และสุภาพ
+      `;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [
+          { role: 'user', parts: [{ text: `${systemContext}\n\nคำถามจากผู้ใช้: ${txt}` }] }
+        ],
+      });
+
+      const replyText = response.text || "ขออภัยครับ ระบบไม่สามารถดึงข้อมูลคำตอบได้";
+
+      // 3. แทนที่สถานะโหลดด้วยคำตอบจริงที่ส่งกลับมาจาก Gemini
       setMsgs(m => {
         const copy = [...m];
-        copy[copy.length - 1] = { type: "bot", text: getResponse() };
+        copy[copy.length - 1] = { type: "bot", text: replyText };
         return copy;
       });
-    }, 1200);
+
+    } catch (error) {
+      console.error("Gemini API Error:", error);
+      setMsgs(m => {
+        const copy = [...m];
+        copy[copy.length - 1] = { type: "bot", text: "เกิดข้อผิดพลาดในการเชื่อมต่อกับ AI กรุณาลองใหม่อีกครั้งครับ 😥" };
+        return copy;
+      });
+    }
   };
 
   useEffect(() => { if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight; }, [msgs]);
