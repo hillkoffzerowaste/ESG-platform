@@ -474,6 +474,55 @@ const branchDetailsText = branches.map(b => {
       setMsgs(m => {
         const copy = [...m];
         copy[copy.length - 1] = { type: "bot", text: replyText };
+        return copy;const send = async () => {
+    if (!input.trim()) return;
+    const txt = input.trim();
+    setInput("");
+
+    // 1. แสดงข้อความของฝั่งยูสเซอร์ และใส่สถานะกำลังโหลด (...)
+    setMsgs(m => [...m, { type: "user", text: txt }, { type: "bot", text: "...", loading: true }]);
+
+    try {
+      // 2. เรียกใช้งาน Gemini SDK โดยส่ง API Key ผ่าน Environment Variable
+      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
+
+      // ดึงรายละเอียดข้อมูลขยะและพลังงานของทุกสาขามาทำเป็น Text สรุปให้ AI อ่านแบบเจาะลึก
+      const branchDetailsText = branches.map(b => {
+        if (!b.hasData) return `- สาขา ${b.name} (${b.id}): ยังไม่มีการกรอกข้อมูลในระบบ`;
+        const wTotal = (b.waste?.general || 0) + (b.waste?.recycle || 0) + (b.waste?.organic || 0) + (b.waste?.hazard || 0);
+        const zeroWasteRate = wTotal > 0 ? (((b.waste?.recycle || 0) + (b.waste?.organic || 0)) / wTotal * 100).toFixed(1) : "0";
+        return `- สาขา ${b.name} (${b.id}): คาร์บอนที่ปล่อย ${b.co2} tCO2e, ไฟฟ้า ${b.elec?.toLocaleString()} kWh, อัตรา Zero Waste ${zeroWasteRate}%`;
+      }).join("\n");
+
+      const systemContext = `
+        คุณคือ "AI Sustainability Assistant" ประจำบริษัทกาแฟ Hillkoff
+        
+        กฎการตอบคำถามของคุณ:
+        1. หากผู้ใช้ถามคำถามทั่วไป, ชวนคุยเล่น, ถามความรู้รอบตัว หรือเรื่องอื่น ๆ นอกเหนือจากระบบ: ให้คุณสวมบทบาทเป็น AI ที่รอบรู้และตอบคำถามเหล่านั้นได้อย่างอิสระ สุภาพ และเปิดกว้างเต็มที่
+        2. หากผู้ใช้ถามข้อมูลที่เกี่ยวกับบริษัท, สถิติ, พลังงาน, ขยะ หรือ ESG ของ Hillkoff: ให้คุณนำข้อมูลดิบด้านล่างนี้ไปใช้วิเคราะห์และตอบให้ตรงประเด็นทันที
+        
+        [ข้อมูลสำหรับใช้ตอบเมื่ออ้างอิงถึงระบบหรือบริษัท Hillkoff]
+        - ภาพรวมคาร์บอนทั้งองค์กร: ${totals.co2.toFixed(2)} tCO2e
+        - การใช้ไฟฟ้ารวม: ${totals.elec.toLocaleString()} kWh
+        - รายละเอียดรายสาขาปัจจุบัน:
+        ${branchDetailsText}
+        
+        จงตอบคำถามอย่างเป็นมิตร ฉลาดรอบรู้ และจัดรูปแบบคำตอบให้สวยงามอ่านง่าย (ใช้ Bullet points ตามความเหมาะสม)
+      `;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [
+          { role: 'user', parts: [{ text: `${systemContext}\n\nคำถามจากผู้ใช้: ${txt}` }] }
+        ],
+      });
+
+      const replyText = response.text || "ขออภัยครับ ระบบไม่สามารถดึงข้อมูลคำตอบได้";
+
+      // 3. แทนที่สถานะโหลดด้วยคำตอบจริงที่ส่งกลับมาจาก Gemini
+      setMsgs(m => {
+        const copy = [...m];
+        copy[copy.length - 1] = { type: "bot", text: replyText };
         return copy;
       });
 
