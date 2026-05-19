@@ -430,17 +430,42 @@ function AIPanel({ open, onClose, branches }) {
       // 2. เรียกใช้งาน Gemini SDK โดยส่ง API Key ผ่าน Environment Variable
       const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
       
-      // ตั้งค่าบริบทข้อมูลองค์กร (Context) ส่งพ่วงไปพร้อมกับคำถาม
-      const systemContext = `
-        คุณคือ AI Sustainability Assistant ของบริษัท Hillkoff 
-        นี่คือข้อมูลสรุปสถานะ ESG และ Carbon Footprint ปัจจุบันขององค์กร:
-        - มีการกรอกข้อมูลแล้วหรือไม่: ${hasData ? "มีแล้ว" : "ยังไม่มีข้อมูล"}
-        - คาร์บอนรวมทั้งองค์กร: ${totals.co2.toFixed(2)} tCO2e
-        - การใช้ไฟฟ้ารวม: ${totals.elec.toLocaleString()} kWh
-        - จำนวนรายการบันทึก: ${totals.entries} รายการ
-        จงตอบคำถามผู้ใช้ด้วยข้อมูลเหล่านี้อย่างเป็นมิตร สรุปใจความชัดเจน และสุภาพ
-      `;
+      // ดึงรายละเอียดข้อมูลขยะและพลังงานของทุกสาขามาทำเป็น Text สรุปให้ AI อ่านแบบเจาะลึก
+      const branchDetailsText = branches.map(b => {
+const branchDetailsText = branches.map(b => {
+        if (!b.hasData) return `- สาขา ${b.name} (${b.id}): ยังไม่มีการกรอกข้อมูลในระบบ`;
+        const wTotal = (b.waste.general || 0) + (b.waste.recycle || 0) + (b.waste.organic || 0) + (b.waste.hazard || 0);
+        const zeroWasteRate = wTotal > 0 ? (((b.waste.recycle || 0) + (b.waste.organic || 0)) / wTotal * 100).toFixed(1) : "0";
+        return `
+        - สาขา ${b.name} (${b.id}):
+          * คาร์บอนที่ปล่อย: ${b.co2} tCO2e (คะแนนความยั่งยืน: ${b.score}/100)
+          * การใช้พลังงาน: ไฟฟ้า ${b.elec.toLocaleString()} kWh, น้ำ ${b.water} m³, เชื้อเพลิง ${b.fuel} ลิตร
+          * การจัดการขยะ: ขยะทั่วไป ${b.waste.general} กก., ขยะรีไซเคิล ${b.waste.recycle} กก., ขยะอินทรีย์/กากกาแฟ ${b.waste.organic} กก., ขยะอันตราย ${b.waste.hazard} กก.
+          * อัตรา Zero Waste (การนำขยะไปรีไซเคิล/ทำปุ๋ย): ${zeroWasteRate}%
+          * สถานะสาขา: ${b.status === "excellent" ? "ดีเยี่ยม" : b.status === "good" ? "ดี" : "ปานกลาง"}
+        `;
+      }).join("\n");
 
+      const systemContext = `
+        คุณคือ "AI Sustainability Assistant" ผู้เชี่ยวชาญระดับสูงด้าน ESG, Carbon Footprint และ Zero Waste ของบริษัทกาแฟ Hillkoff
+        
+        หน้าที่ของคุณคือวิเคราะห์ข้อมูล ตอบคำถาม และให้คำแนะนำเชิงกลยุทธ์ในการลดคาร์บอนและการจัดการขยะอย่างละเอียด ถี่ถ้วน และเป็นมืออาชีพแต่เป็นกันเอง
+        
+        นี่คือข้อมูลสถานะปัจจุบันของทั้งองค์กร Hillkoff:
+        [ภาพรวมทั้งบริษัท]
+        - มีการกรอกข้อมูลรวมแล้วหรือไม่: ${hasData ? "กรอกแล้ว" : "ยังไม่มีข้อมูลในระบบ"}
+        - คาร์บอนรวมรวมทุกสาขา: ${totals.co2.toFixed(2)} tCO2e
+        - การใช้ไฟฟ้ารวม: ${totals.elec.toLocaleString()} kWh
+        - จำนวนรายการบันทึกทั้งหมด: ${totals.entries} รายการ
+        
+        [ข้อมูลเจาะลึกรายสาขา]
+        ${branchDetailsText}
+        
+        แนวทางการตอบคำถาม:
+        1. หากผู้ใช้ถามภาพรวม ให้สรุปตัวเลขสำคัญ และวิเคราะห์ว่าสาขาไหนทำได้ดี (เช่น อัตรา Zero Waste สูง) หรือสาขาไหนควรปรับปรุง (เช่น ปล่อย Carbon สูง หรือใช้ไฟเยอะ)
+        2. หากผู้ใช้ขอคำแนะนำ ให้แนะนำวิธีลดขยะ หรือลดการใช้ไฟฟ้าที่สอดคล้องกับธุรกิจกาแฟ (เช่น การจัดการกากกาแฟ, บรรจุภัณฑ์รักษ์โลก, การประหยัดไฟเครื่องคั่วหรือเครื่องชง)
+        3. ตอบคำถามอย่างครอบคลุม มีการจัดหัวข้อข้อความ (ใช้ Bullet points) ให้อ่านง่าย สรุปใจความชัดเจน และสุภาพเรียบร้อย
+      `;
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: [
