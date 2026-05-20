@@ -5,8 +5,10 @@ export async function POST(request) {
   try {
     const { txt, systemContext } = await request.json();
 
-    // เรียกใช้ Gemini ตรงนี้ (ฝั่ง Server จะไม่ติดปัญหา CORS และปลอดภัยกว่า)
-    const ai = new GoogleGenAI({ apiKey: "AIzaSyC97a8JLeMNFtQc7ikvACU4PJMDfF_o2nQ" });
+    // ดึงค่าผ่าน Environment Variable ของ Vercel (ปลอดภัยที่สุด คีย์ไม่รั่วไหล)
+    const apiKey = process.env.GEMINI_API_KEY || "AIzaSyC97a8JLeMNFtQc7ikvACU4PJMDfF_o2nQ";
+    
+    const ai = new GoogleGenAI({ apiKey: apiKey });
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
