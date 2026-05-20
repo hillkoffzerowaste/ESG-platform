@@ -527,9 +527,9 @@ function AIPanel({ open, onClose, branches }) {
           >
             ➤
           </button>
-        </div> {/* <--- 1. ปิดกล่องแถว Input ข้อมูล */}
-      </div> {/* <--- 2. ปิดกล่องหน้าต่างแชทใหญ่ */}
-    </> {/* <--- 3. ปิด Fragment หลักของตัวแชท */}
+        </div>
+      </div>
+    </>
   );
 }
 function PageHome({ branches, monthlyCo2, onBranchClick, onGoUpload }) {
