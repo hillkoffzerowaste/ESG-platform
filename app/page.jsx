@@ -504,13 +504,29 @@ function AIPanel({ open, onClose, branches }) {
           ))}
         </div>
         <div style={{ display: "flex", gap: 8, padding: "12px 14px", borderTop: "1px solid #d1fae5" }}>
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="ถามเกี่ยวกับ ESG / Carbon / ขยะ..." style={{ flex: 1, padding: "9px 12px", border: "1px solid #d1fae5", borderRadius: 12, fontFamily: "var(--font)", fontSize: 12, background: "#f0fdf4", color: "#14532d", outline: "none" }} />
-          <button onClick={send} style={{ width: 36, height: 36, background: "#166534", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>➤</button>
-        </div>
-      </div>
-    </>
-  );
-}
+          <input 
+  type="text"
+  value={input} 
+  onChange={e => setInput(e.target.value)} 
+  onKeyDown={e => {
+    if (e.key === "Enter") {
+      e.preventDefault(); // กันไม่ให้เกิด default behavior ของบราวเซอร์
+      send();
+    }
+  }} 
+  placeholder="ถามเกี่ยวกับ ESG / Carbon / ขยะ..." 
+  style={{ flex: 1, padding: "9px 12px", border: "1.5px solid #d1fae5", borderRadius: 12, fontFamily: "var(--font)", fontSize: 12, background: "#f0fdf4", color: "#14532d", outline: "none" }} 
+/>
+<button 
+  type="button" // เติมตรงนี้เพื่อบังคับให้มันเป็นแค่ปุ่มธรรมดา ไม่ไป Trigger ฟอร์ม
+  onClick={(e) => {
+    e.preventDefault();
+    send();
+  }} 
+  style={{ width: 36, height: 36, background: "#166534", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+>
+  ➤
+</button>
 function PageHome({ branches, monthlyCo2, onBranchClick, onGoUpload }) {
   const totals = branches.reduce((acc, b) => ({ co2: +(acc.co2 + b.co2).toFixed(4), elec: acc.elec + b.elec, water: acc.water + b.water, fuel: acc.fuel + b.fuel, entries: acc.entries + b.entries }), { co2: 0, elec: 0, water: 0, fuel: 0, entries: 0 });
   const hasData = branches.some(b => b.hasData);
