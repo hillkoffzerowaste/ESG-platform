@@ -409,67 +409,21 @@ function BranchModal({ b, onClose, onGoUpload }) {
   );
 }
 
-// ─── AI Panel ─────────────────────────────────────────────────────────────────
+// ─── AI Panel (เวอร์ชันแก้ไข Syntax Error และใส่ API Key ตรงๆ แล้ว) ───────────────────
 function AIPanel({ open, onClose, branches }) {
-  const [msgs, setMsgs] = useState([{ type: "bot", text: "สวัสดีครับ! ผมคือ AI ที่ช่วยวิเคราะห์ข้อมูล ESG, Carbon Footprint และ Zero Waste ของ Hillkoff กรอกข้อมูลหรืออัปโหลดไฟล์ในหน้า Upload แล้วถามผมได้เลยครับ 🌱" }]);
+  const [msgs, setMsgs] = useState([
+    { type: "bot", text: "สวัสดีครับ! ผมคือ AI ที่ช่วยวิเคราะห์ข้อมูล ESG, Carbon Footprint และ Zero Waste ของ Hillkoff กรอกข้อมูลหรืออัปโหลดไฟล์ในหน้า Upload แล้วถามผมได้เลยครับ 🌱" }
+  ]);
   const [input, setInput] = useState("");
   const msgsRef = useRef(null);
 
-  const hasData = branches.some(b => b.hasData);
-  const totals = branches.reduce((acc, b) => ({ co2: acc.co2 + b.co2, elec: acc.elec + b.elec, entries: acc.entries + b.entries }), { co2: 0, elec: 0, entries: 0 });
+  const totals = branches.reduce((acc, b) => ({
+    co2: acc.co2 + b.co2,
+    elec: acc.elec + b.elec,
+    entries: acc.entries + b.entries
+  }), { co2: 0, elec: 0, entries: 0 });
 
-    // 1. แสดงข้อความของฝั่งยูสเซอร์ และใส่สถานะกำลังโหลด (...)
-    setMsgs(m => [...m, { type: "user", text: txt }, { type: "bot", text: "...", loading: true }]);
-
-    try {
-     // 2. เรียกใช้งาน Gemini SDK โดยส่ง API Key ตรงๆ
-const ai = new GoogleGenAI({ apiKey: "AIzaSyC97a8JLeMNFtQc7ikvACU4PJMDfF_o2nQ" });
-      
-      // ดึงรายละเอียดข้อมูลขยะและพลังงานของทุกสาขามาทำเป็น Text สรุปให้ AI อ่านแบบเจาะลึก
-      const branchDetailsText = branches.map(b => {
-const branchDetailsText = branches.map(b => {
-        if (!b.hasData) return `- สาขา ${b.name} (${b.id}): ยังไม่มีการกรอกข้อมูลในระบบ`;
-        const wTotal = (b.waste.general || 0) + (b.waste.recycle || 0) + (b.waste.organic || 0) + (b.waste.hazard || 0);
-        const zeroWasteRate = wTotal > 0 ? (((b.waste.recycle || 0) + (b.waste.organic || 0)) / wTotal * 100).toFixed(1) : "0";
-        return `
-        - สาขา ${b.name} (${b.id}):
-          * คาร์บอนที่ปล่อย: ${b.co2} tCO2e (คะแนนความยั่งยืน: ${b.score}/100)
-          * การใช้พลังงาน: ไฟฟ้า ${b.elec.toLocaleString()} kWh, น้ำ ${b.water} m³, เชื้อเพลิง ${b.fuel} ลิตร
-          * การจัดการขยะ: ขยะทั่วไป ${b.waste.general} กก., ขยะรีไซเคิล ${b.waste.recycle} กก., ขยะอินทรีย์/กากกาแฟ ${b.waste.organic} กก., ขยะอันตราย ${b.waste.hazard} กก.
-          * อัตรา Zero Waste (การนำขยะไปรีไซเคิล/ทำปุ๋ย): ${zeroWasteRate}%
-          * สถานะสาขา: ${b.status === "excellent" ? "ดีเยี่ยม" : b.status === "good" ? "ดี" : "ปานกลาง"}
-        `;
-      }).join("\n");
-
-      const systemContext = `
-        คุณคือ "AI Sustainability Assistant" ประจำบริษัทกาแฟ Hillkoff
-        
-        กฎการตอบคำถามของคุณ:
-        1. หากผู้ใช้ถามคำถามทั่วไป, ความรู้รอบตัว, หรือเรื่องอื่น ๆ นอกเหนือจากระบบ: ให้คุณสวมบทบาทเป็น AI ที่รอบรู้และสามารถตอบคำถามเหล่านั้นได้อย่างอิสระ สุภาพ และมีประโยชน์ที่สุด
-        2. หากผู้ใช้ถามข้อมูลที่เกี่ยวกับบริษัท, สถิติ, พลังงาน, ขยะ หรือ ESG ของ Hillkoff: ให้คุณนำข้อมูลดิบด้านล่างนี้ไปใช้วิเคราะห์และตอบให้ตรงประเด็นทันที
-        
-        [ข้อมูลสำหรับใช้ตอบเมื่ออ้างอิงถึงระบบหรือบริษัท Hillkoff]
-        - ภาพรวมคาร์บอนทั้งองค์กร: ${totals.co2.toFixed(2)} tCO2e
-        - การใช้ไฟฟ้ารวม: ${totals.elec.toLocaleString()} kWh
-        - รายละเอียดรายสาขาปัจจุบัน:
-        ${branchDetailsText}
-        
-        จงตอบคำถามอย่างเป็นมิตร ฉลาดรอบรู้ และจัดรูปแบบคำตอบให้สวยงามอ่านง่าย (ใช้ Bullet points ตามความเหมาะสม)
-      `;
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [
-          { role: 'user', parts: [{ text: `${systemContext}\n\nคำถามจากผู้ใช้: ${txt}` }] }
-        ],
-      });
-
-      const replyText = response.text || "ขออภัยครับ ระบบไม่สามารถดึงข้อมูลคำตอบได้";
-
-      // 3. แทนที่สถานะโหลดด้วยคำตอบจริงที่ส่งกลับมาจาก Gemini
-      setMsgs(m => {
-        const copy = [...m];
-        copy[copy.length - 1] = { type: "bot", text: replyText };
-        return copy;const send = async () => {
+  const send = async () => {
     if (!input.trim()) return;
     const txt = input.trim();
     setInput("");
@@ -479,9 +433,9 @@ const branchDetailsText = branches.map(b => {
 
     try {
       // 2. เรียกใช้งาน Gemini SDK โดยส่ง API Key ตรงๆ
-const ai = new GoogleGenAI({ apiKey: "AIzaSyC97a8JLeMNFtQc7ikvACU4PJMDfF_o2nQ" });
+      const ai = new GoogleGenAI({ apiKey: "AIzaSyC97a8JLeMNFtQc7ikvACU4PJMDfF_o2nQ" });
 
-      // ดึงรายละเอียดข้อมูลขยะและพลังงานของทุกสาขามาทำเป็น Text สรุปให้ AI อ่านแบบเจาะลึก
+      // ดึงรายละเอียดข้อมูลขยะและพลังงานของทุกสาขา
       const branchDetailsText = branches.map(b => {
         if (!b.hasData) return `- สาขา ${b.name} (${b.id}): ยังไม่มีการกรอกข้อมูลในระบบ`;
         const wTotal = (b.waste?.general || 0) + (b.waste?.recycle || 0) + (b.waste?.organic || 0) + (b.waste?.hazard || 0);
@@ -490,18 +444,16 @@ const ai = new GoogleGenAI({ apiKey: "AIzaSyC97a8JLeMNFtQc7ikvACU4PJMDfF_o2nQ" }
       }).join("\n");
 
       const systemContext = `
-        คุณคือ "AI Sustainability Assistant" ประจำบริษัทกาแฟ Hillkoff
-        
-        กฎการตอบคำถามของคุณ:
+        คุณคือ "AI Sustainability Assistant" ประจำบริษัทกาแฟ Hillkoff กฎการตอบคำถามของคุณ:
         1. หากผู้ใช้ถามคำถามทั่วไป, ชวนคุยเล่น, ถามความรู้รอบตัว หรือเรื่องอื่น ๆ นอกเหนือจากระบบ: ให้คุณสวมบทบาทเป็น AI ที่รอบรู้และตอบคำถามเหล่านั้นได้อย่างอิสระ สุภาพ และเปิดกว้างเต็มที่
         2. หากผู้ใช้ถามข้อมูลที่เกี่ยวกับบริษัท, สถิติ, พลังงาน, ขยะ หรือ ESG ของ Hillkoff: ให้คุณนำข้อมูลดิบด้านล่างนี้ไปใช้วิเคราะห์และตอบให้ตรงประเด็นทันที
-        
+
         [ข้อมูลสำหรับใช้ตอบเมื่ออ้างอิงถึงระบบหรือบริษัท Hillkoff]
         - ภาพรวมคาร์บอนทั้งองค์กร: ${totals.co2.toFixed(2)} tCO2e
         - การใช้ไฟฟ้ารวม: ${totals.elec.toLocaleString()} kWh
         - รายละเอียดรายสาขาปัจจุบัน:
         ${branchDetailsText}
-        
+
         จงตอบคำถามอย่างเป็นมิตร ฉลาดรอบรู้ และจัดรูปแบบคำตอบให้สวยงามอ่านง่าย (ใช้ Bullet points ตามความเหมาะสม)
       `;
 
@@ -531,27 +483,14 @@ const ai = new GoogleGenAI({ apiKey: "AIzaSyC97a8JLeMNFtQc7ikvACU4PJMDfF_o2nQ" }
     }
   };
 
-  useEffect(() => { if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight; }, [msgs]);
+  useEffect(() => {
+    if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
+  }, [msgs]);
 
   return (
     <>
-      <button onClick={onClose} style={{
-        position: "fixed", bottom: "calc(var(--nav-h) + 16px)", right: 16,
-        width: 52, height: 52, background: "linear-gradient(135deg,#166534,#16a34a)",
-        border: "none", borderRadius: "50%", fontSize: 24, cursor: "pointer",
-        boxShadow: "0 4px 20px rgba(22,101,52,.4)", zIndex: 90,
-        display: "flex", alignItems: "center", justifyContent: "center"
-      }}>🤖</button>
-      <div style={{
-        position: "fixed", bottom: "calc(var(--nav-h) + 76px)", right: 16,
-        width: "min(340px,calc(100vw - 32px))", background: "#fff",
-        borderRadius: 24, boxShadow: "0 8px 40px rgba(22,101,52,.14)",
-        border: "1px solid #d1fae5", zIndex: 90, overflow: "hidden",
-        transform: open ? "scale(1) translateY(0)" : "scale(.9) translateY(20px)",
-        opacity: open ? 1 : 0, pointerEvents: open ? "all" : "none",
-        transition: "all .25s cubic-bezier(.4,0,.2,1)", transformOrigin: "bottom right",
-        fontFamily: "var(--font)"
-      }}>
+      <button onClick={onClose} style={{position: "fixed", bottom: "calc(var(--nav-h) + 16px)", right: 16, width: 52, height: 52, background: "linear-gradient(135deg,#166534,#16a34a)", border: "none", borderRadius: "50%", fontSize: 24, cursor: "pointer", boxShadow: "0 4px 20px rgba(22,101,52,.4)", zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center" }}>🤖</button>
+      <div style={{position: "fixed", bottom: "calc(var(--nav-h) + 76px)", right: 16, width: "min(340px,calc(100vw - 32px))", background: "#fff", borderRadius: 24, boxShadow: "0 8px 40px rgba(22,101,52,.14)", border: "1px solid #d1fae5", zIndex: 90, overflow: "hidden", transform: open ? "scale(1) translateY(0)" : "scale(.9) translateY(20px)", opacity: open ? 1 : 0, pointerEvents: open ? "all" : "none", transition: "all .25s cubic-bezier(.4,0,.2,1)", transformOrigin: "bottom right", fontFamily: "var(--font)" }}>
         <div style={{ background: "linear-gradient(135deg,#0f4c2a,#15803d)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 22 }}>🤖</span>
           <div>
@@ -561,30 +500,17 @@ const ai = new GoogleGenAI({ apiKey: "AIzaSyC97a8JLeMNFtQc7ikvACU4PJMDfF_o2nQ" }
         </div>
         <div ref={msgsRef} style={{ padding: 14, height: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
           {msgs.map((m, i) => (
-            <div key={i} style={{
-              padding: "10px 12px", borderRadius: 14, fontSize: 12, lineHeight: 1.5,
-              maxWidth: "88%", opacity: m.loading ? .6 : 1,
-              alignSelf: m.type === "user" ? "flex-end" : "flex-start",
-              background: m.type === "user" ? "#166534" : "#f0fdf4",
-              color: m.type === "user" ? "#fff" : "#14532d",
-              borderBottomLeftRadius: m.type === "bot" ? 4 : 14,
-              borderBottomRightRadius: m.type === "user" ? 4 : 14,
-            }}>{m.text}</div>
+            <div key={i} style={{padding: "10px 12px", borderRadius: 14, fontSize: 12, lineHeight: 1.5, maxWidth: "88%", opacity: m.loading ? .6 : 1, alignSelf: m.type === "user" ? "flex-end" : "flex-start", background: m.type === "user" ? "#166534" : "#f0fdf4", color: m.type === "user" ? "#fff" : "#14532d", borderBottomLeftRadius: m.type === "bot" ? 4 : 14, borderBottomRightRadius: m.type === "user" ? 4 : 14, }}>{m.text}</div>
           ))}
         </div>
         <div style={{ display: "flex", gap: 8, padding: "12px 14px", borderTop: "1px solid #d1fae5" }}>
-          <input value={input} onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && send()}
-            placeholder="ถามเกี่ยวกับ ESG / Carbon / ขยะ..."
-            style={{ flex: 1, padding: "9px 12px", border: "1px solid #d1fae5", borderRadius: 12, fontFamily: "var(--font)", fontSize: 12, background: "#f0fdf4", color: "#14532d", outline: "none" }} />
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="ถามเกี่ยวกับ ESG / Carbon / ขยะ..." style={{ flex: 1, padding: "9px 12px", border: "1px solid #d1fae5", borderRadius: 12, fontFamily: "var(--font)", fontSize: 12, background: "#f0fdf4", color: "#14532d", outline: "none" }} />
           <button onClick={send} style={{ width: 36, height: 36, background: "#166534", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>➤</button>
         </div>
       </div>
     </>
   );
 }
-
-// ─── PAGE: HOME ───────────────────────────────────────────────────────────────
 function PageHome({ branches, monthlyCo2, onBranchClick, onGoUpload }) {
   const totals = branches.reduce((acc, b) => ({ co2: +(acc.co2 + b.co2).toFixed(4), elec: acc.elec + b.elec, water: acc.water + b.water, fuel: acc.fuel + b.fuel, entries: acc.entries + b.entries }), { co2: 0, elec: 0, water: 0, fuel: 0, entries: 0 });
   const hasData = branches.some(b => b.hasData);
