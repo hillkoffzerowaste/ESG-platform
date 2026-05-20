@@ -423,7 +423,7 @@ function AIPanel({ open, onClose, branches }) {
     entries: acc.entries + b.entries
   }), { co2: 0, elec: 0, entries: 0 });
 
-  const send = async () => {
+const send = async () => {
     if (!input.trim()) return;
     const txt = input.trim();
     setInput("");
@@ -432,9 +432,6 @@ function AIPanel({ open, onClose, branches }) {
     setMsgs(m => [...m, { type: "user", text: txt }, { type: "bot", text: "...", loading: true }]);
 
     try {
-      // 2. เรียกใช้งาน Gemini SDK โดยส่ง API Key ตรงๆ
-      const ai = new GoogleGenAI({ apiKey: "AIzaSyC97a8JLeMNFtQc7ikvACU4PJMDfF_o2nQ" });
-
       // ดึงรายละเอียดข้อมูลขยะและพลังงานของทุกสาขา
       const branchDetailsText = branches.map(b => {
         if (!b.hasData) return `- สาขา ${b.name} (${b.id}): ยังไม่มีการกรอกข้อมูลในระบบ`;
@@ -457,16 +454,17 @@ function AIPanel({ open, onClose, branches }) {
         จงตอบคำถามอย่างเป็นมิตร ฉลาดรอบรู้ และจัดรูปแบบคำตอบให้สวยงามอ่านง่าย (ใช้ Bullet points ตามความเหมาะสม)
       `;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [
-          { role: 'user', parts: [{ text: `${systemContext}\n\nคำถามจากผู้ใช้: ${txt}` }] }
-        ],
+      // ยิงข้อมูลไปที่ API Route ของเราแทนการเรียก SDK ตรงๆ ฝั่ง Client
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txt, systemContext })
       });
 
-      const replyText = response.text || "ขออภัยครับ ระบบไม่สามารถดึงข้อมูลคำตอบได้";
+      const data = await res.json();
+      const replyText = data.text || "เกิดข้อผิดพลาดในการรับข้อมูล";
 
-      // 3. แทนที่สถานะโหลดด้วยคำตอบจริงที่ส่งกลับมาจาก Gemini
+      // 3. แทนที่สถานะโหลดด้วยคำตอบจริงที่ส่งกลับมาจาก API
       setMsgs(m => {
         const copy = [...m];
         copy[copy.length - 1] = { type: "bot", text: replyText };
@@ -474,7 +472,7 @@ function AIPanel({ open, onClose, branches }) {
       });
 
     } catch (error) {
-      console.error("Gemini API Error:", error);
+      console.error("Fetch API Error:", error);
       setMsgs(m => {
         const copy = [...m];
         copy[copy.length - 1] = { type: "bot", text: "เกิดข้อผิดพลาดในการเชื่อมต่อกับ AI กรุณาลองใหม่อีกครั้งครับ 😥" };
