@@ -1,7 +1,6 @@
-import "./globals.css";
 export const metadata = {
-  title: "Packing Next",
-  description: "Packing System",
+  title: "Hillkoff Zero Waste Analytics",
+  description: "ESG, Carbon Footprint และ Zero Waste dashboard"
 };
 
 export default function RootLayout({ children }) {
