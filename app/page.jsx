@@ -518,17 +518,18 @@ function AIPanel({ open, onClose, branches }) {
   style={{ flex: 1, padding: "9px 12px", border: "1.5px solid #d1fae5", borderRadius: 12, fontFamily: "var(--font)", fontSize: 12, background: "#f0fdf4", color: "#14532d", outline: "none" }} 
 />
 <button 
-  type="button" // เติมตรงนี้เพื่อบังคับให้มันเป็นแค่ปุ่มธรรมดา ไม่ไป Trigger ฟอร์ม
-  onClick={(e) => {
-    e.preventDefault();
-    send();
-  }} 
-  style={{ width: 36, height: 36, background: "#166534", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
->
-  ➤
-</button>
-      </div>
-    </>
+            type="button" 
+            onClick={(e) => {
+              e.preventDefault();
+              send();
+            }} 
+            style={{ width: 36, height: 36, background: "#166534", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            ➤
+          </button>
+        </div> {/* <--- 1. ปิดกล่องแถว Input ข้อมูล */}
+      </div> {/* <--- 2. ปิดกล่องหน้าต่างแชทใหญ่ */}
+    </> {/* <--- 3. ปิด Fragment หลักของตัวแชท */}
   );
 }
 function PageHome({ branches, monthlyCo2, onBranchClick, onGoUpload }) {
