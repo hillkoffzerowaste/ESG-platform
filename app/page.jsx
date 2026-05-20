@@ -418,11 +418,6 @@ function AIPanel({ open, onClose, branches }) {
   const hasData = branches.some(b => b.hasData);
   const totals = branches.reduce((acc, b) => ({ co2: acc.co2 + b.co2, elec: acc.elec + b.elec, entries: acc.entries + b.entries }), { co2: 0, elec: 0, entries: 0 });
 
- const send = async () => {
-    if (!input.trim()) return;
-    const txt = input.trim();
-    setInput("");
-
     // 1. แสดงข้อความของฝั่งยูสเซอร์ และใส่สถานะกำลังโหลด (...)
     setMsgs(m => [...m, { type: "user", text: txt }, { type: "bot", text: "...", loading: true }]);
 
