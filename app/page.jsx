@@ -527,6 +527,10 @@ function AIPanel({ open, onClose, branches }) {
 >
   ➤
 </button>
+      </div>
+    </>
+  );
+}
 function PageHome({ branches, monthlyCo2, onBranchClick, onGoUpload }) {
   const totals = branches.reduce((acc, b) => ({ co2: +(acc.co2 + b.co2).toFixed(4), elec: acc.elec + b.elec, water: acc.water + b.water, fuel: acc.fuel + b.fuel, entries: acc.entries + b.entries }), { co2: 0, elec: 0, water: 0, fuel: 0, entries: 0 });
   const hasData = branches.some(b => b.hasData);
