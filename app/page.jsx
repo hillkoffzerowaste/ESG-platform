@@ -485,7 +485,9 @@ function AIPanel({ open, onToggle, branches }) {
   const totals = useMemo(() => branches.reduce((acc, b) => ({ co2: +(acc.co2 + b.co2).toFixed(4), elec: acc.elec + b.elec, water: acc.water + b.water, fuel: acc.fuel + b.fuel, entries: acc.entries + b.entries }), { co2: 0, elec: 0, water: 0, fuel: 0, entries: 0 }), [branches]);
 
   const fallbackResponse = () => {
-    if (!hasData) return "ยังไม่มีข้อมูลครับ กรุณากรอกข้อมูลหรืออัปโหลดไฟล์ในหน้า Upload ก่อนครับ 📝";
+     if (!hasData) {
+      return "ตอนนี้ dashboard ยังไม่มีข้อมูลสาขาครับ แต่ถามความรู้พื้นฐานเกี่ยวกับ ESG, Carbon Footprint, Scope 1/2/3, Zero Waste, สูตรคำนวณ หรือวิธีเตรียมข้อมูลได้เลย ถ้าต้องการสรุปตัวเลขขององค์กรค่อยกรอกข้อมูลหรืออัปโหลดไฟล์ในหน้า Upload ก่อนครับ 📝";
+    }
     const best = [...branches].filter(b => b.hasData).sort((a, b) => b.score - a.score)[0];
     return `Carbon รวม ${totals.co2.toFixed(2)} tCO₂e จาก ${totals.entries} รายการ สาขาที่มี Score สูงสุดคือ ${best?.name || "—"} และ Carbon Credit ประมาณ ${Math.round(totals.co2 * 2.4)} credits`;
   };
