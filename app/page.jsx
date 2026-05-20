@@ -478,7 +478,7 @@ function ReportDetailModal({ report, totals, onClose, onDownload }) {
 }
 
 function AIPanel({ open, onToggle, branches }) {
-  const [msgs, setMsgs] = useState([{ type: "bot", text: "สวัสดีครับ! ผมคือ AI ที่ช่วยวิเคราะห์ ESG, Carbon Footprint และ Zero Waste ของ Hillkoff กรอกข้อมูลหรืออัปโหลดไฟล์ในหน้า Upload แล้วถามผมได้เลยครับ 🌱" }]);
+  const [msgs, setMsgs] = useState([{ type: "bot", text: "สวัสดีครับ! ถามผมได้ทั้งคำถามทั่วไป งานเอกสาร ไอเดียธุรกิจ หรือเรื่อง ESG / Carbon / Zero Waste ของ Hillkoff ถ้าถามตัวเลข dashboard ผมจะอ้างอิงจากข้อมูลที่กรอกไว้ครับ 🌱" }]);
   const [input, setInput] = useState("");
   const msgsRef = useRef(null);
   const hasData = branches.some(b => b.hasData);
@@ -486,7 +486,7 @@ function AIPanel({ open, onToggle, branches }) {
 
   const fallbackResponse = () => {
      if (!hasData) {
-      return "ตอนนี้ dashboard ยังไม่มีข้อมูลสาขาครับ แต่ถามความรู้พื้นฐานเกี่ยวกับ ESG, Carbon Footprint, Scope 1/2/3, Zero Waste, สูตรคำนวณ หรือวิธีเตรียมข้อมูลได้เลย ถ้าต้องการสรุปตัวเลขขององค์กรค่อยกรอกข้อมูลหรืออัปโหลดไฟล์ในหน้า Upload ก่อนครับ 📝";
+      return "ผมตอบคำถามทั่วไปได้ครับ แต่ตอนนี้ AI API ตอบกลับไม่สำเร็จ และ dashboard ยังไม่มีข้อมูลสาขา ถ้าถามเรื่องตัวเลข Carbon/สาขา ต้องกรอกข้อมูลหรืออัปโหลดไฟล์ก่อนครับ 📝";
     }
     const best = [...branches].filter(b => b.hasData).sort((a, b) => b.score - a.score)[0];
     return `Carbon รวม ${totals.co2.toFixed(2)} tCO₂e จาก ${totals.entries} รายการ สาขาที่มี Score สูงสุดคือ ${best?.name || "—"} และ Carbon Credit ประมาณ ${Math.round(totals.co2 * 2.4)} credits`;
@@ -530,9 +530,9 @@ function AIPanel({ open, onToggle, branches }) {
         <div style={{ background: "linear-gradient(135deg,#0f4c2a,#15803d)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 22 }}>🤖</span>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>AI Sustainability Assistant</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,.65)" }}>เชื่อมต่อผ่าน /api/ai-chat</div>
-          </div>
+          <input className="input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="ถามอะไรก็ได้ หรือถามข้อมูล ESG..." style={{ flex: 1, fontSize: 12 }} />
+          <button onClick={send} style={{ width: 38, height: 38, background: "#166534", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, cursor: "pointer" }}>➤</button>
+        </div>
         </div>
         <div ref={msgsRef} style={{ padding: 14, height: 232, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
           {msgs.map((m, i) => (
