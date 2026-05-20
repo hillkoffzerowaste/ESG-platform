@@ -427,8 +427,8 @@ function AIPanel({ open, onClose, branches }) {
     setMsgs(m => [...m, { type: "user", text: txt }, { type: "bot", text: "...", loading: true }]);
 
     try {
-      // 2. เรียกใช้งาน Gemini SDK โดยส่ง API Key ผ่าน Environment Variable
-      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
+     // 2. เรียกใช้งาน Gemini SDK โดยส่ง API Key ตรงๆ
+const ai = new GoogleGenAI({ apiKey: "AIzaSyC97a8JLeMNFtQc7ikvACU4PJMDfF_o2nQ" });
       
       // ดึงรายละเอียดข้อมูลขยะและพลังงานของทุกสาขามาทำเป็น Text สรุปให้ AI อ่านแบบเจาะลึก
       const branchDetailsText = branches.map(b => {
@@ -483,8 +483,8 @@ const branchDetailsText = branches.map(b => {
     setMsgs(m => [...m, { type: "user", text: txt }, { type: "bot", text: "...", loading: true }]);
 
     try {
-      // 2. เรียกใช้งาน Gemini SDK โดยส่ง API Key ผ่าน Environment Variable
-      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
+      // 2. เรียกใช้งาน Gemini SDK โดยส่ง API Key ตรงๆ
+const ai = new GoogleGenAI({ apiKey: "AIzaSyC97a8JLeMNFtQc7ikvACU4PJMDfF_o2nQ" });
 
       // ดึงรายละเอียดข้อมูลขยะและพลังงานของทุกสาขามาทำเป็น Text สรุปให้ AI อ่านแบบเจาะลึก
       const branchDetailsText = branches.map(b => {
