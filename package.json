@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start"
   },
-  "dependencies": {
-    "@google/genai": "^0.1.1",
+"dependencies": {
+    "@google/genai": "latest",
     "next": "14.2.5",
     "react": "18.2.0",
     "react-dom": "18.2.0"
