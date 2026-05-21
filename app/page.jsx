@@ -1354,7 +1354,9 @@ export default function App() {
       }
 
       setCurrentUser(data.user);
-      const localState = normalizeDashboardState(readLocalDashboardState(data.user.id));
+      const userLocalState = normalizeDashboardState(readLocalDashboardState(data.user.id));
+      const guestLocalState = normalizeDashboardState(readLocalDashboardState("guest"));
+      const localState = chooseNewestDashboardState(userLocalState, guestLocalState);
       setBranches(localState.branches);
       setMonthlyCo2(localState.monthlyCo2);
       setYearlyStats(localState.yearlyStats);
@@ -1395,6 +1397,7 @@ export default function App() {
     if (!dashboardLoaded) return;
     const snapshot = { branches, monthlyCo2, yearlyStats, entriesLog, loginHistory, userProfile };
     writeLocalDashboardState(currentUser?.id, snapshot);
+    writeLocalDashboardState("guest", snapshot);
     const timer = setTimeout(async () => {
       try {
         await fetch("/api/dashboard", {
