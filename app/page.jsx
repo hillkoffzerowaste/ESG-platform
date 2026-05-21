@@ -151,6 +151,7 @@ const getWasteItems = entry => [
 ];
 
 const dashboardStorageKey = userId => `hillkoff-dashboard-state:${userId || "guest"}`;
+const DATA_ADMIN_EMAIL = "online_marketing@hillkoff.com";
 
 const readLocalDashboardState = userId => {
   if (typeof window === "undefined") return null;
@@ -299,6 +300,17 @@ const REPORT_DETAILS = {
 
 const numFmt = n => (n >= 1000 ? `${Math.round(n / 100) / 10}k` : n);
 const asNumber = v => parseFloat(v) || 0;
+const sumMaterialQty = materials => +(materials || []).reduce((sum, item) => sum + asNumber(item.qty), 0).toFixed(2);
+
+const WHITE_PAPER_HTML = `<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><title>Hillkoff Zero Waste Analytics White Paper</title>
+<style>body{font-family:Arial,sans-serif;line-height:1.7;color:#14532d;max-width:860px;margin:40px auto;padding:0 24px}h1,h2{color:#166534}section{border-top:1px solid #d1fae5;padding-top:18px;margin-top:22px}.kpi{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px;margin:10px 0}</style></head>
+<body><h1>Hillkoff Zero Waste Analytics</h1>
+<p>White paper ฉบับย่อสำหรับอธิบายแนวคิด ระบบ และวิธีใช้ข้อมูลในโครงการ Zero Waste & Sustainability Dashboard</p>
+<section><h2>1. แนวคิดโครงการ</h2><p>ระบบนี้ทำหน้าที่รวมข้อมูลการใช้ทรัพยากรของแต่ละสาขา ได้แก่ ไฟฟ้า น้ำ เชื้อเพลิง ขยะ และการเบิกใช้วัสดุ เพื่อเปลี่ยนข้อมูลรายเดือนให้เป็นภาพรวมด้าน ESG, Carbon Emission และ Zero Waste ที่ตรวจสอบย้อนหลังได้</p></section>
+<section><h2>2. หลักการคำนวณ</h2><div class="kpi">ไฟฟ้า: kWh x 0.4716 / 1000 = tCO2e</div><div class="kpi">น้ำ: m3 x 0.00149 = tCO2e</div><div class="kpi">เชื้อเพลิง: ปริมาณ x emission factor / 1000 = tCO2e</div><p>รายการเบิกใช้วัสดุถูกเก็บเป็น activity data เพื่อดูพฤติกรรมการใช้วัสดุและหลักฐานประกอบ ไม่ถูกรวมเป็นคาร์บอนโดยตรงจนกว่าจะมี emission factor เฉพาะรายการที่ผ่านการรับรอง</p></section>
+<section><h2>3. ธรรมาภิบาลข้อมูล</h2><p>ข้อมูลทุกครั้งที่บันทึกจะมีสาขา เดือน ผู้ใช้ เอกสารอ้างอิง และเวลา เพื่อให้ตรวจสอบย้อนกลับได้ ผู้ดูแลระบบที่กำหนดเท่านั้นสามารถรีเซ็ตข้อมูลที่ผิดหรือรีเซ็ตข้อมูลทั้งหมดได้</p></section>
+<section><h2>4. เป้าหมายการใช้งาน</h2><p>ใช้ dashboard เป็นเครื่องมือทำงานประจำเดือนสำหรับลดต้นทุน ลดของเสีย เตรียมรายงานผู้บริหาร และต่อยอดไปสู่รายงาน Carbon Footprint, TCFD และ Net Zero Roadmap</p></section></body></html>`;
 
 function simulateFileExtraction(fileName, branchId) {
   const ext = fileName.split(".").pop().toLowerCase();
@@ -847,6 +859,7 @@ function PageUpload({ branches, onSave, showToast }) {
       let totalWOrg = asNumber(waste.oCoffee) + asNumber(waste.oFood) + asNumber(waste.oOther);
       let totalWHaz = asNumber(waste.hChem) + asNumber(waste.hBatt) + asNumber(waste.hLandfill);
       let totalMatCount = matEntries.length;
+      let totalMatQty = sumMaterialQty(matEntries);
       const fileDescriptions = [];
 
       readyFiles.forEach(f => {
@@ -871,8 +884,8 @@ function PageUpload({ branches, onSave, showToast }) {
       const rr = wTotal > 0 ? ((totalWRec + totalWOrg) / wTotal * 100).toFixed(1) : "0.0";
 
       const documents = readyFiles.map(f => ({ ...f, description: simulateFileExtraction(f.name, branchId).description }));
-      onSave({ branchId, month, elec: totalElec, water: totalWater, fuel: totalFuel, co2Total, co2Elec, co2Water, co2Fuel, wGen: totalWGen, wRec: totalWRec, wOrg: totalWOrg, wHaz: totalWHaz, matCount: totalMatCount, recycleRate: rr, materials: [...matEntries], documents, note });
-      setResult({ co2Elec, co2Water, co2Fuel, co2Total, elec: totalElec, water: totalWater, fuel: totalFuel, wGen: totalWGen, wRec: totalWRec, wOrg: totalWOrg, wHaz: totalWHaz, wTotal, rr, matCount: totalMatCount, matEntries: [...matEntries], branchName: branches.find(b => b.id === branchId)?.name || branchId, filesUsed: readyFiles.length, fileDescriptions, hasManual: hasManualData });
+      onSave({ branchId, month, elec: totalElec, water: totalWater, fuel: totalFuel, co2Total, co2Elec, co2Water, co2Fuel, wGen: totalWGen, wRec: totalWRec, wOrg: totalWOrg, wHaz: totalWHaz, materialItems: totalMatCount, materialQty: totalMatQty, recycleRate: rr, materials: [...matEntries], documents, note });
+      setResult({ co2Elec, co2Water, co2Fuel, co2Total, elec: totalElec, water: totalWater, fuel: totalFuel, wGen: totalWGen, wRec: totalWRec, wOrg: totalWOrg, wHaz: totalWHaz, wTotal, rr, matCount: totalMatCount, matQty: totalMatQty, matEntries: [...matEntries], branchName: branches.find(b => b.id === branchId)?.name || branchId, filesUsed: readyFiles.length, fileDescriptions, hasManual: hasManualData });
       setMatEntries([]);
       setReadyFiles([]);
       setAnalyzing(false);
@@ -1026,7 +1039,7 @@ function PageUpload({ branches, onSave, showToast }) {
             <span style={{ fontSize: 28 }}>✅</span>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>บันทึกสำเร็จ — {result.branchName} · {month}</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,.7)", marginTop: 2 }}>Carbon: {result.co2Total} tCO₂e · ขยะรีไซเคิล: {result.rr}% {result.filesUsed > 0 && `· จากไฟล์: ${result.filesUsed} ไฟล์`} {result.matCount > 0 && `· วัสดุ: ${result.matCount} รายการ`}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,.7)", marginTop: 2 }}>Carbon: {result.co2Total} tCO₂e · ขยะรีไซเคิล: {result.rr}% {result.filesUsed > 0 && `· จากไฟล์: ${result.filesUsed} ไฟล์`} {result.matCount > 0 && `· วัสดุ: ${result.matCount} รายการ / ${result.matQty} หน่วย`}</div>
             </div>
           </div>
           {result.filesUsed > 0 && (
@@ -1037,7 +1050,7 @@ function PageUpload({ branches, onSave, showToast }) {
           )}
           <div className="card" style={{ padding: 12, marginTop: 8 }}>
             <div className="analytics-grid">
-              {[["ไฟฟ้า", `${result.elec} kWh`, `→ ${result.co2Elec} tCO₂e`], ["น้ำ", `${result.water} m³`, `→ ${result.co2Water} tCO₂e`], ["เชื้อเพลิง", `${result.fuel} ลิตร`, `→ ${result.co2Fuel} tCO₂e`], ["อัตรารีไซเคิล", `${result.rr}%`, "ของขยะทั้งหมด"]].map(([l, v, u]) => (
+              {[["ไฟฟ้า", `${result.elec} kWh`, `→ ${result.co2Elec} tCO₂e`], ["น้ำ", `${result.water} m³`, `→ ${result.co2Water} tCO₂e`], ["เชื้อเพลิง", `${result.fuel} ลิตร`, `→ ${result.co2Fuel} tCO₂e`], ["วัสดุเบิกใช้", `${result.matQty} หน่วย`, `${result.matCount} รายการ`], ["อัตรารีไซเคิล", `${result.rr}%`, "ของขยะทั้งหมด"]].map(([l, v, u]) => (
                 <div key={l} style={{ textAlign: "center", padding: 10, background: "#f0fdf4", borderRadius: 10 }}>
                   <div style={{ fontSize: 9, color: "#6b7280" }}>{l}</div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: "#166534" }}>{v}</div>
@@ -1167,19 +1180,42 @@ function PageRanking({ branches, onBranchClick }) {
 
 function PageReports({ branches, monthlyCo2, yearlyStats, entriesLog, showToast }) {
   const [selectedReport, setSelectedReport] = useState(null);
+  const [documentType, setDocumentType] = useState("html");
   const totals = branches.reduce((acc, b) => ({ co2: +(acc.co2 + b.co2).toFixed(4), entries: acc.entries + b.entries }), { co2: 0, entries: 0 });
   const credits = Math.round(totals.co2 * 2.4);
-  const downloadReport = type => {
+  const buildReportRows = reportName => [
+    ["Report", reportName],
+    ["Generated At", new Date().toLocaleString()],
+    ["Total Carbon (tCO2e)", totals.co2],
+    ["Entries", totals.entries],
+    ["Carbon Credits", credits],
+    ["Material Items", entriesLog.reduce((sum, entry) => sum + Number(entry.materialItems || entry.materials?.length || 0), 0)],
+    ["Material Quantity", entriesLog.reduce((sum, entry) => sum + Number(entry.materialQty || sumMaterialQty(entry.materials)), 0)],
+    [],
+    ["Branch", "Entries", "kWh", "Water", "Fuel", "tCO2e", "Score"],
+    ...branches.map(b => [b.nameEn || b.id, b.entries, b.elec, b.water, b.fuel, b.co2, b.score]),
+    [],
+    ["Month", "tCO2e"],
+    ...monthlyCo2.map((v, i) => [MONTHS[i], v]),
+    [],
+    ["Year", "Entries", "tCO2e"],
+    ...Object.entries(yearlyStats || {}).map(([year, stat]) => [year, stat.entries || 0, stat.co2 || 0])
+  ];
+  const downloadReport = (type, format = documentType) => {
     const names = { esg: "Executive ESG Report", carbon: "Carbon Emission Report", tcfd: "TCFD Disclosure Report", monthly: "Monthly Sustainability Report", branch: "Branch Comparison Report" };
     const reportName = names[type] || "Sustainability Report";
     const stamp = new Date().toISOString().slice(0, 10);
-    if (type === "monthly") {
-      const csv = buildCsv([["Month", "tCO2e"], ...monthlyCo2.map((v, i) => [MONTHS[i], v])]);
-      downloadBlob(`hillkoff-monthly-${stamp}.csv`, csv, "text/csv;charset=utf-8");
+    const safeType = type || "report";
+    if (format === "csv") {
+      downloadBlob(`hillkoff-${safeType}-${stamp}.csv`, buildCsv(buildReportRows(reportName)), "text/csv;charset=utf-8");
+    } else if (format === "xls") {
+      downloadBlob(`hillkoff-${safeType}-${stamp}.xls`, createReportHtml({ title: reportName, totals, branches, monthlyCo2, yearlyStats, entriesLog }), "application/vnd.ms-excel;charset=utf-8");
+    } else if (format === "pdf") {
+      downloadBlob(`hillkoff-${safeType}-print-${stamp}.html`, createReportHtml({ title: `${reportName} (Print to PDF)`, totals, branches, monthlyCo2, yearlyStats, entriesLog }), "text/html;charset=utf-8");
     } else {
-      downloadBlob(`hillkoff-${type || "report"}-${stamp}.html`, createReportHtml({ title: reportName, totals, branches, monthlyCo2, yearlyStats, entriesLog }));
+      downloadBlob(`hillkoff-${safeType}-${stamp}.html`, createReportHtml({ title: reportName, totals, branches, monthlyCo2, yearlyStats, entriesLog }));
     }
-    showToast(`✅ ดาวน์โหลด ${reportName} เรียบร้อย`);
+    showToast(`Downloaded ${reportName} (${format.toUpperCase()})`);
   };
   const reports = [
     ["📊", "Executive ESG Report", "สรุปผลการดำเนินงาน ESG ประจำเดือน พร้อม KPI และ Carbon Summary", "PDF · Excel", "esg"],
@@ -1214,6 +1250,16 @@ function PageReports({ branches, monthlyCo2, yearlyStats, entriesLog, showToast 
           </div>
         </div>
       </div>
+      <div className="card" style={{ padding: 12, marginBottom: 14 }}>
+        <FormGroup label="Report document type">
+          <select className="input" value={documentType} onChange={e => setDocumentType(e.target.value)}>
+            <option value="html">HTML Report</option>
+            <option value="pdf">PDF-ready HTML</option>
+            <option value="xls">Excel (.xls)</option>
+            <option value="csv">CSV</option>
+          </select>
+        </FormGroup>
+      </div>
       <SectionTitle>รายงานผู้บริหาร</SectionTitle>
       <div className="report-list">
         {reports.map(([icon, title, desc, badge, type]) => (
@@ -1234,8 +1280,9 @@ function PageReports({ branches, monthlyCo2, yearlyStats, entriesLog, showToast 
   );
 }
 
-function PageSettings({ user, userProfile, loginHistory, entriesLog, databaseStatus, onProfileChange }) {
+function PageSettings({ user, userProfile, loginHistory, entriesLog, databaseStatus, onProfileChange, onResetOperationalData, onResetAllData }) {
   const [query, setQuery] = useState("");
+  const isDataAdmin = (user?.email || "").trim().toLowerCase() === DATA_ADMIN_EMAIL;
   const documents = entriesLog.flatMap(entry => (entry.documents || []).map(doc => ({
     ...doc,
     month: entry.month,
@@ -1273,6 +1320,30 @@ function PageSettings({ user, userProfile, loginHistory, entriesLog, databaseSta
           <FormGroup label="แผนก / บทบาท"><input className="input" value={userProfile.role || ""} onChange={e => onProfileChange({ ...userProfile, role: e.target.value })} placeholder="เช่น Sustainability / Admin" /></FormGroup>
         </div>
       </FormCard>
+
+      <div className="card" style={{ padding: 14, marginBottom: 14, borderColor: isDataAdmin ? "#bbf7d0" : "#e5e7eb", background: isDataAdmin ? "#f0fdf4" : "#f9fafb" }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: isDataAdmin ? "#166534" : "#6b7280", marginBottom: 4 }}>Invalid Data Manager</div>
+        <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.6, marginBottom: 10 }}>
+          Authorized admin: <b>{DATA_ADMIN_EMAIL}</b>{isDataAdmin ? " can reset incorrect entries or reset all dashboard values." : " only can reset dashboard data."}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button disabled={!isDataAdmin} onClick={onResetOperationalData} style={{ padding: "10px 14px", border: "none", borderRadius: 10, fontSize: 12, fontWeight: 800, cursor: isDataAdmin ? "pointer" : "not-allowed", background: isDataAdmin ? "#166534" : "#d1d5db", color: "#fff" }}>Reset incorrect data</button>
+          <button disabled={!isDataAdmin} onClick={() => { if (window.confirm("Reset all dashboard data?")) onResetAllData(); }} style={{ padding: "10px 14px", border: "1px solid #fecaca", borderRadius: 10, fontSize: 12, fontWeight: 800, cursor: isDataAdmin ? "pointer" : "not-allowed", background: isDataAdmin ? "#fef2f2" : "#f3f4f6", color: isDataAdmin ? "#b91c1c" : "#9ca3af" }}>Reset all data</button>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 16, marginBottom: 14, borderColor: "#bbf7d0" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "#dcfce7", display: "grid", placeItems: "center", color: "#166534", fontWeight: 900 }}>WP</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#14532d" }}>White Paper: Hillkoff Zero Waste Analytics</div>
+            <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.6, marginTop: 4 }}>
+              สรุปแนวคิดโครงการ วิธีคิดข้อมูล Carbon / Zero Waste ธรรมาภิบาลข้อมูล และเป้าหมายการใช้งานสำหรับแนบประกอบการประชุมหรือส่งต่อให้ทีมบริหาร
+            </div>
+            <button onClick={() => downloadBlob("hillkoff-zero-waste-white-paper.html", WHITE_PAPER_HTML)} style={{ marginTop: 10, padding: "9px 13px", border: "none", borderRadius: 10, background: "#166534", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>ดาวน์โหลด White Paper</button>
+          </div>
+        </div>
+      </div>
 
       <div className="card" style={{ padding: 12, marginBottom: 14 }}>
         <FormGroup label="ค้นหาด่วนเอกสาร / ประวัติการคีย์ข้อมูล">
@@ -1376,7 +1447,7 @@ export default function App() {
       setYearlyStats(localState.yearlyStats);
       setEntriesLog(localState.entriesLog);
       setLoginHistory(localState.loginHistory);
-      setUserProfile({ email: data.user.email, ...localState.userProfile });
+      setUserProfile({ email: data.user.email, id: data.user.id, ...localState.userProfile });
 
       try {
         const response = await fetch("/api/dashboard", { cache: "no-store" });
@@ -1389,17 +1460,17 @@ export default function App() {
           setYearlyStats(normalized.yearlyStats);
           setEntriesLog(normalized.entriesLog);
           setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...normalized.loginHistory].slice(0, 50));
-          setUserProfile({ email: data.user.email, ...normalized.userProfile });
+          setUserProfile({ email: data.user.email, id: data.user.id, ...normalized.userProfile });
         } else {
           setDatabaseStatus("local");
           setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...localState.loginHistory].slice(0, 50));
-          setUserProfile({ email: data.user.email, ...localState.userProfile });
+          setUserProfile({ email: data.user.email, id: data.user.id, ...localState.userProfile });
         }
       } catch (error) {
         console.warn("Dashboard load failed:", error);
         setDatabaseStatus("local");
         setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...localState.loginHistory].slice(0, 50));
-        setUserProfile({ email: data.user.email, ...localState.userProfile });
+        setUserProfile({ email: data.user.email, id: data.user.id, ...localState.userProfile });
       } finally {
         setDashboardLoaded(true);
       }
@@ -1438,7 +1509,7 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(t => ({ ...t, show: false })), 2500);
   }, []);
 
-  const handleSave = useCallback(({ branchId, month, elec, water, fuel, co2Total, wGen, wRec, wOrg, wHaz, recycleRate, materials = [], documents = [], note = "" }) => {
+  const handleSave = useCallback(({ branchId, month, elec, water, fuel, co2Total, wGen, wRec, wOrg, wHaz, recycleRate, materials = [], materialItems = materials.length, materialQty = sumMaterialQty(materials), documents = [], note = "" }) => {
     setBranches(prev => prev.map(b => {
       if (b.id !== branchId) return b;
       const newCo2 = +(b.co2 + co2Total).toFixed(4);
@@ -1489,6 +1560,8 @@ export default function App() {
       co2: co2Total,
       waste: { general: wGen, recycle: wRec, organic: wOrg, hazard: wHaz },
       materials,
+      materialItems,
+      materialQty,
       documents,
       note,
       user: { id: currentUser?.id, email: currentUser?.email },
@@ -1496,6 +1569,24 @@ export default function App() {
     }]);
     const bn = BRANCHES_INIT.find(b => b.id === branchId)?.name || branchId;
     showToast(`✅ อัปเดตข้อมูล ${bn} เรียบร้อย`);
+  }, [showToast, currentUser]);
+
+  const resetOperationalData = useCallback(() => {
+    setBranches(emptyBranches());
+    setMonthlyCo2(Array(12).fill(0));
+    setYearlyStats({});
+    setEntriesLog([]);
+    showToast("✅ รีเซ็ตข้อมูลการใช้งานและรายการที่คีย์ผิดเรียบร้อย");
+  }, [showToast]);
+
+  const resetAllDashboardData = useCallback(() => {
+    setBranches(emptyBranches());
+    setMonthlyCo2(Array(12).fill(0));
+    setYearlyStats({});
+    setEntriesLog([]);
+    setLoginHistory([]);
+    setUserProfile(currentUser?.email ? { email: currentUser.email, id: currentUser.id } : {});
+    showToast("✅ รีเซ็ตค่าข้อมูลทั้งหมดเรียบร้อย");
   }, [showToast, currentUser]);
 
   const navItems = [
@@ -1530,7 +1621,7 @@ export default function App() {
           {page === "analytics" && <PageAnalytics branches={branches} monthlyCo2={monthlyCo2} entriesLog={entriesLog} />}
           {page === "ranking" && <PageRanking branches={branches} onBranchClick={i => setModalBranchIdx(i)} />}
           {page === "reports" && <PageReports branches={branches} monthlyCo2={monthlyCo2} yearlyStats={yearlyStats} entriesLog={entriesLog} showToast={showToast} />}
-          {page === "settings" && <PageSettings user={currentUser} userProfile={userProfile} loginHistory={loginHistory} entriesLog={entriesLog} databaseStatus={databaseStatus} onProfileChange={setUserProfile} />}
+          {page === "settings" && <PageSettings user={currentUser} userProfile={userProfile} loginHistory={loginHistory} entriesLog={entriesLog} databaseStatus={databaseStatus} onProfileChange={setUserProfile} onResetOperationalData={resetOperationalData} onResetAllData={resetAllDashboardData} />}
         </div>
       </div>
 
