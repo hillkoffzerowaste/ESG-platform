@@ -622,12 +622,17 @@ function AIPanel({ open, onToggle, branches }) {
   const hasData = branches.some(b => b.hasData);
   const totals = useMemo(() => branches.reduce((acc, b) => ({ co2: +(acc.co2 + b.co2).toFixed(4), elec: acc.elec + b.elec, water: acc.water + b.water, fuel: acc.fuel + b.fuel, entries: acc.entries + b.entries }), { co2: 0, elec: 0, water: 0, fuel: 0, entries: 0 }), [branches]);
 
-  const fallbackResponse = () => {
-     if (!hasData) {
-      return "ผมตอบคำถามทั่วไปได้ครับ แต่ตอนนี้ AI API ตอบกลับไม่สำเร็จ และ dashboard ยังไม่มีข้อมูลสาขา ถ้าถามเรื่องตัวเลข Carbon/สาขา ต้องกรอกข้อมูลหรืออัปโหลดไฟล์ก่อนครับ 📝";
+  const fallbackResponse = question => {
+    const q = question.toLowerCase();
+    const asksDashboard = /(carbon|co2|dashboard|esg|ขยะ|ไฟฟ้า|น้ำ|เชื้อเพลิง|สาขา|รายงาน|คาร์บอน)/i.test(q);
+    if (!asksDashboard) {
+      return "ตอนนี้ AI API หลักเชื่อมต่อไม่สำเร็จครับ แต่สำหรับคำถามทั่วไป ผมช่วยคิดโครงให้ได้ทันที: 1) ระบุเป้าหมายให้ชัด 2) แยกตัวเลือก 3 แบบ 3) เลือกแบบที่ทำได้เร็วที่สุด แล้วค่อยปรับให้ดีขึ้น ถ้าส่งหัวข้อหรือบริบทเพิ่ม ผมจะช่วยร่างคำตอบ/ไอเดียให้เป็นชุดได้ครับ";
+    }
+    if (!hasData) {
+      return "ตอนนี้ AI API หลักเชื่อมต่อไม่สำเร็จ และ dashboard ยังไม่มีข้อมูลสาขา ถ้าถามเรื่องตัวเลข Carbon/สาขา ต้องกรอกข้อมูลหรืออัปโหลดไฟล์ก่อนครับ แต่ผมยังช่วยอธิบายแนวคิด ESG, Carbon Footprint, Scope 1/2/3 หรือ Zero Waste ได้";
     }
     const best = [...branches].filter(b => b.hasData).sort((a, b) => b.score - a.score)[0];
-    return `Carbon รวม ${totals.co2.toFixed(2)} tCO₂e จาก ${totals.entries} รายการ สาขาที่มี Score สูงสุดคือ ${best?.name || "—"} และ Carbon Credit ประมาณ ${Math.round(totals.co2 * 2.4)} credits`;
+    return `AI API หลักยังตอบไม่สำเร็จครับ แต่จากข้อมูลใน dashboard ตอนนี้ Carbon รวม ${totals.co2.toFixed(2)} tCO₂e จาก ${totals.entries} รายการ สาขาที่มี Score สูงสุดคือ ${best?.name || "—"} และ Carbon Credit ประมาณ ${Math.round(totals.co2 * 2.4)} credits`;
   };
 
   const send = async () => {
@@ -648,10 +653,10 @@ function AIPanel({ open, onToggle, branches }) {
         copy[copy.length - 1] = { type: "bot", text: data.reply };
         return copy;
       });
-    } catch {
+    } catch (error) {
       setMsgs(m => {
         const copy = [...m];
-        copy[copy.length - 1] = { type: "bot", text: fallbackResponse() };
+        copy[copy.length - 1] = { type: "bot", text: fallbackResponse(txt), error: error.message };
         return copy;
       });
     }
@@ -1229,7 +1234,7 @@ function PageReports({ branches, monthlyCo2, yearlyStats, entriesLog, showToast 
   );
 }
 
-function PageSettings({ user, userProfile, loginHistory, entriesLog, onProfileChange }) {
+function PageSettings({ user, userProfile, loginHistory, entriesLog, databaseStatus, onProfileChange }) {
   const [query, setQuery] = useState("");
   const documents = entriesLog.flatMap(entry => (entry.documents || []).map(doc => ({
     ...doc,
@@ -1250,6 +1255,14 @@ function PageSettings({ user, userProfile, loginHistory, entriesLog, onProfileCh
   return (
     <div className="fade-up">
       <PageHeader title="⚙️ Settings" sub="ข้อมูลผู้ใช้ · ประวัติล็อกอิน · ประวัติเอกสารและการคีย์ข้อมูล" />
+      <div className="card" style={{ padding: 12, marginBottom: 14, borderColor: databaseStatus === "connected" ? "#bbf7d0" : "#fde68a", background: databaseStatus === "connected" ? "#f0fdf4" : "#fffbeb" }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: databaseStatus === "connected" ? "#166534" : "#92400e" }}>
+          {databaseStatus === "connected" ? "✅ Database connected" : databaseStatus === "checking" ? "⏳ กำลังตรวจสอบ database" : "⚠️ บันทึกสำรองในเครื่อง"}
+        </div>
+        <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>
+          {databaseStatus === "connected" ? "ข้อมูลถูกส่งเข้า Firestore แล้ว และยังมีสำเนาสำรองใน browser" : "ระบบยังใช้งานได้และข้อมูลไม่หายหลัง refresh ใน browser นี้ แต่ควรตรวจค่า GOOGLE_SERVICE_ACCOUNT_JSON / GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 บน Vercel เพื่อให้ส่งเข้า database กลาง"}
+        </div>
+      </div>
       <FormCard title="👤 ข้อมูลผู้ใช้งาน" sub="ข้อมูลนี้ใช้ประกอบประวัติและรายงานภายในระบบ">
         <div className="form-grid-2" style={{ marginBottom: 10 }}>
           <FormGroup label="อีเมลล็อกอิน"><input className="input" value={user?.email || "-"} readOnly /></FormGroup>
@@ -1329,6 +1342,7 @@ export default function App() {
   const [userProfile, setUserProfile] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
   const [dashboardLoaded, setDashboardLoaded] = useState(false);
+  const [databaseStatus, setDatabaseStatus] = useState("checking");
   const [modalBranchIdx, setModalBranchIdx] = useState(null);
   const [toast, setToast] = useState({ msg: "", show: false });
   const [aiOpen, setAiOpen] = useState(false);
@@ -1368,6 +1382,7 @@ export default function App() {
         const response = await fetch("/api/dashboard", { cache: "no-store" });
         const saved = await response.json();
         if (response.ok && saved?.data) {
+          setDatabaseStatus("connected");
           const normalized = chooseNewestDashboardState(localState, normalizeDashboardState(saved.data));
           setBranches(normalized.branches);
           setMonthlyCo2(normalized.monthlyCo2);
@@ -1376,11 +1391,13 @@ export default function App() {
           setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...normalized.loginHistory].slice(0, 50));
           setUserProfile({ email: data.user.email, ...normalized.userProfile });
         } else {
+          setDatabaseStatus("local");
           setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...localState.loginHistory].slice(0, 50));
           setUserProfile({ email: data.user.email, ...localState.userProfile });
         }
       } catch (error) {
         console.warn("Dashboard load failed:", error);
+        setDatabaseStatus("local");
         setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...localState.loginHistory].slice(0, 50));
         setUserProfile({ email: data.user.email, ...localState.userProfile });
       } finally {
@@ -1400,13 +1417,15 @@ export default function App() {
     writeLocalDashboardState("guest", snapshot);
     const timer = setTimeout(async () => {
       try {
-        await fetch("/api/dashboard", {
+        const response = await fetch("/api/dashboard", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(snapshot)
         });
+        setDatabaseStatus(response.ok ? "connected" : "local");
       } catch (error) {
         console.warn("Dashboard save failed:", error);
+        setDatabaseStatus("local");
       }
     }, 500);
 
@@ -1511,7 +1530,7 @@ export default function App() {
           {page === "analytics" && <PageAnalytics branches={branches} monthlyCo2={monthlyCo2} entriesLog={entriesLog} />}
           {page === "ranking" && <PageRanking branches={branches} onBranchClick={i => setModalBranchIdx(i)} />}
           {page === "reports" && <PageReports branches={branches} monthlyCo2={monthlyCo2} yearlyStats={yearlyStats} entriesLog={entriesLog} showToast={showToast} />}
-          {page === "settings" && <PageSettings user={currentUser} userProfile={userProfile} loginHistory={loginHistory} entriesLog={entriesLog} onProfileChange={setUserProfile} />}
+          {page === "settings" && <PageSettings user={currentUser} userProfile={userProfile} loginHistory={loginHistory} entriesLog={entriesLog} databaseStatus={databaseStatus} onProfileChange={setUserProfile} />}
         </div>
       </div>
 

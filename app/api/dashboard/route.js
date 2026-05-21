@@ -4,10 +4,15 @@ import { readDashboardState, writeDashboardState } from "@/lib/googleFirestore";
 export async function GET() {
   try {
     const state = await readDashboardState();
-    return NextResponse.json({ success: true, data: state });
+    return NextResponse.json({
+      success: true,
+      source: "firestore",
+      savedAt: state?.savedAt || null,
+      data: state
+    });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || "Dashboard read failed" },
+      { success: false, source: "firestore", error: error.message || "Dashboard read failed" },
       { status: 500 }
     );
   }
@@ -16,14 +21,15 @@ export async function GET() {
 export async function POST(req) {
   try {
     const state = await req.json();
-    await writeDashboardState({
+    const savedState = {
       ...state,
       savedAt: new Date().toISOString()
-    });
-    return NextResponse.json({ success: true });
+    };
+    await writeDashboardState(savedState);
+    return NextResponse.json({ success: true, source: "firestore", savedAt: savedState.savedAt });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || "Dashboard write failed" },
+      { success: false, source: "firestore", error: error.message || "Dashboard write failed" },
       { status: 500 }
     );
   }
