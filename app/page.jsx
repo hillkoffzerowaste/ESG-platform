@@ -84,6 +84,110 @@ const BRANCHES_INIT = [
 
 const MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
+const emptyBranches = () => BRANCHES_INIT.map(b => ({
+  ...b,
+  elec: 0,
+  water: 0,
+  fuel: 0,
+  co2: 0,
+  score: 0,
+  entries: 0,
+  hasData: false,
+  waste: { general: 0, recycle: 0, organic: 0, hazard: 0 },
+  status: "none"
+}));
+
+const normalizeDashboardState = state => {
+  const branchMap = new Map((state?.branches || []).map(b => [b.id, b]));
+  return {
+    branches: emptyBranches().map(base => ({ ...base, ...(branchMap.get(base.id) || {}) })),
+    monthlyCo2: Array.from({ length: 12 }, (_, i) => Number(state?.monthlyCo2?.[i] || 0)),
+    yearlyStats: state?.yearlyStats || {},
+    entriesLog: Array.isArray(state?.entriesLog) ? state.entriesLog : [],
+    loginHistory: Array.isArray(state?.loginHistory) ? state.loginHistory : [],
+    userProfile: state?.userProfile || {},
+    savedAt: state?.savedAt || null
+  };
+};
+
+const downloadBlob = (filename, content, type = "text/html;charset=utf-8") => {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const buildCsv = rows => rows.map(row => row.map(value => `"${String(value ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+
+const getMonthKey = value => value || new Date().toISOString().slice(0, 7);
+
+const groupTopByMonth = (entries, selector) => {
+  const grouped = {};
+  entries.forEach(entry => {
+    const month = getMonthKey(entry.month);
+    selector(entry).forEach(item => {
+      if (!item?.name || !Number(item.qty)) return;
+      grouped[month] ||= {};
+      grouped[month][item.name] ||= { ...item, qty: 0 };
+      grouped[month][item.name].qty += Number(item.qty);
+    });
+  });
+  return Object.fromEntries(Object.entries(grouped).map(([month, items]) => [
+    month,
+    Object.values(items).sort((a, b) => b.qty - a.qty).slice(0, 5)
+  ]));
+};
+
+const getWasteItems = entry => [
+  { name: "ขยะทั่วไป", qty: entry.waste?.general || 0, unit: "กก." },
+  { name: "ขยะรีไซเคิล", qty: entry.waste?.recycle || 0, unit: "กก." },
+  { name: "ขยะอินทรีย์", qty: entry.waste?.organic || 0, unit: "กก." },
+  { name: "ขยะอันตราย/ฝังกลบ", qty: entry.waste?.hazard || 0, unit: "กก." }
+];
+
+const projectWhitepaper = `
+  <section class="whitepaper">
+    <h2>Project Whitepaper: Hillkoff Zero Waste Analytics</h2>
+    <p><strong>Purpose.</strong> This project was created to turn daily resource use and waste activity across Hillkoff branches into a living sustainability database. The system keeps cumulative records instead of resetting values, so management can see the latest operational footprint at any time and compare monthly or yearly progress with confidence.</p>
+    <p><strong>Scope.</strong> The platform tracks electricity, water, fuel, waste separation, carbon footprint, branch ranking, ESG performance, carbon credit estimates, and report-ready summaries. Each data upload becomes part of the historical record and supports month-over-month and year-over-year comparison.</p>
+    <p><strong>Management Value.</strong> The dashboard helps identify high-impact branches, detect rising emissions early, improve zero-waste practices, and prepare ESG, Carbon, TCFD, monthly, and branch-comparison reports from the same verified dataset.</p>
+    <p><strong>Long-Term Goal.</strong> The end goal is a practical decision system for reducing cost, reducing emissions, improving sustainability discipline, and supporting Hillkoff's transition toward measurable Net Zero and circular operations.</p>
+  </section>
+`;
+
+const createReportHtml = ({ title, totals, branches, monthlyCo2, yearlyStats, entriesLog = [] }) => {
+  const credits = Math.round(totals.co2 * 2.4);
+  const topMaterialsByMonth = groupTopByMonth(entriesLog, entry => entry.materials || []);
+  const topWasteByMonth = groupTopByMonth(entriesLog, getWasteItems);
+  const branchRows = branches.map(b => `
+    <tr><td>${b.nameEn || b.id}</td><td>${b.entries}</td><td>${b.elec}</td><td>${b.water}</td><td>${b.fuel}</td><td>${b.co2}</td><td>${b.score}</td></tr>
+  `).join("");
+  const monthRows = monthlyCo2.map((v, i) => `<tr><td>${MONTHS[i]}</td><td>${v}</td></tr>`).join("");
+  const yearRows = Object.entries(yearlyStats || {}).map(([year, stat]) => `<tr><td>${year}</td><td>${stat.entries || 0}</td><td>${stat.co2 || 0}</td></tr>`).join("");
+  const materialRows = Object.entries(topMaterialsByMonth).flatMap(([month, items]) => items.map(item => `<tr><td>${month}</td><td>${item.name}</td><td>${item.qty}</td><td>${item.unit || ""}</td></tr>`)).join("");
+  const wasteRows = Object.entries(topWasteByMonth).flatMap(([month, items]) => items.map(item => `<tr><td>${month}</td><td>${item.name}</td><td>${item.qty}</td><td>${item.unit || ""}</td></tr>`)).join("");
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><title>${title}</title>
+<style>
+body{font-family:Arial,sans-serif;margin:40px;color:#143321}h1,h2{color:#166534}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kpi{border:1px solid #bbf7d0;border-radius:10px;padding:14px;background:#f0fdf4}.kpi b{display:block;font-size:24px}table{width:100%;border-collapse:collapse;margin:18px 0}th,td{border:1px solid #d1d5db;padding:8px;text-align:left}th{background:#dcfce7}.whitepaper{page-break-before:always;border-top:4px solid #166534;margin-top:34px;padding-top:18px;line-height:1.65}@media print{button{display:none}}
+</style></head><body>
+<h1>${title}</h1>
+<p>Generated at ${new Date().toLocaleString()}</p>
+<div class="grid"><div class="kpi">Total Carbon<b>${totals.co2}</b>tCO2e</div><div class="kpi">Entries<b>${totals.entries}</b>records</div><div class="kpi">Carbon Credits<b>${credits}</b>credits</div><div class="kpi">Active Branches<b>${branches.filter(b => b.hasData).length}</b>branches</div></div>
+<h2>Branch Summary</h2><table><thead><tr><th>Branch</th><th>Entries</th><th>kWh</th><th>Water</th><th>Fuel</th><th>tCO2e</th><th>Score</th></tr></thead><tbody>${branchRows}</tbody></table>
+<h2>Monthly Carbon</h2><table><thead><tr><th>Month</th><th>tCO2e</th></tr></thead><tbody>${monthRows}</tbody></table>
+<h2>Yearly Statistics</h2><table><thead><tr><th>Year</th><th>Entries</th><th>tCO2e</th></tr></thead><tbody>${yearRows || "<tr><td colspan='3'>No yearly data yet</td></tr>"}</tbody></table>
+<h2>Top Materials by Month</h2><table><thead><tr><th>Month</th><th>Material</th><th>Quantity</th><th>Unit</th></tr></thead><tbody>${materialRows || "<tr><td colspan='4'>No material data yet</td></tr>"}</tbody></table>
+<h2>Top Waste by Month</h2><table><thead><tr><th>Month</th><th>Waste Type</th><th>Quantity</th><th>Unit</th></tr></thead><tbody>${wasteRows || "<tr><td colspan='4'>No waste data yet</td></tr>"}</tbody></table>
+${projectWhitepaper}
+</body></html>`;
+};
+
 const REPORT_DETAILS = {
   esg: {
     title: "Executive ESG Report",
@@ -627,6 +731,9 @@ function PageHome({ branches, monthlyCo2, onBranchClick, onGoUpload }) {
 function PageUpload({ branches, onSave, showToast }) {
   const [branchId, setBranchId] = useState("HQ");
   const [month, setMonth] = useState("2024-06");
+  const [docSource, setDocSource] = useState("");
+  const [docOwner, setDocOwner] = useState("");
+  const [docReference, setDocReference] = useState("");
   const [elec, setElec] = useState("");
   const [elecThb, setElecThb] = useState("");
   const [water, setWater] = useState("");
@@ -671,10 +778,22 @@ function PageUpload({ branches, onSave, showToast }) {
     if (!["xlsx", "csv", "pdf"].includes(ext)) return showToast("⚠️ ไฟล์นี้ไม่รองรับ");
     const id = Date.now() + Math.random();
     const size = file.size > 1048576 ? `${(file.size / 1048576).toFixed(1)}MB` : `${Math.max(1, Math.round(file.size / 1024))}KB`;
-    setUploadedFiles(prev => [{ id, name: file.name, ext, size, status: "processing" }, ...prev]);
+    const documentMeta = {
+      id,
+      name: file.name,
+      ext,
+      size,
+      source: docSource || "ไม่ระบุแหล่งที่มา",
+      owner: docOwner || "ไม่ระบุผู้ส่ง",
+      reference: docReference || "-",
+      branchId,
+      month,
+      uploadedAt: new Date().toISOString()
+    };
+    setUploadedFiles(prev => [{ ...documentMeta, status: "processing" }, ...prev]);
     setTimeout(() => {
       setUploadedFiles(prev => prev.map(f => f.id === id ? { ...f, status: "done" } : f));
-      setReadyFiles(prev => [...prev, { id, name: file.name, ext }]);
+      setReadyFiles(prev => [...prev, documentMeta]);
       showToast(`✅ นำเข้าสำเร็จ: ${file.name}`);
     }, 900);
   };
@@ -714,7 +833,8 @@ function PageUpload({ branches, onSave, showToast }) {
       const wTotal = totalWGen + totalWRec + totalWOrg + totalWHaz;
       const rr = wTotal > 0 ? ((totalWRec + totalWOrg) / wTotal * 100).toFixed(1) : "0.0";
 
-      onSave({ branchId, month, elec: totalElec, water: totalWater, fuel: totalFuel, co2Total, co2Elec, co2Water, co2Fuel, wGen: totalWGen, wRec: totalWRec, wOrg: totalWOrg, wHaz: totalWHaz, matCount: totalMatCount, recycleRate: rr });
+      const documents = readyFiles.map(f => ({ ...f, description: simulateFileExtraction(f.name, branchId).description }));
+      onSave({ branchId, month, elec: totalElec, water: totalWater, fuel: totalFuel, co2Total, co2Elec, co2Water, co2Fuel, wGen: totalWGen, wRec: totalWRec, wOrg: totalWOrg, wHaz: totalWHaz, matCount: totalMatCount, recycleRate: rr, materials: [...matEntries], documents, note });
       setResult({ co2Elec, co2Water, co2Fuel, co2Total, elec: totalElec, water: totalWater, fuel: totalFuel, wGen: totalWGen, wRec: totalWRec, wOrg: totalWOrg, wHaz: totalWHaz, wTotal, rr, matCount: totalMatCount, matEntries: [...matEntries], branchName: branches.find(b => b.id === branchId)?.name || branchId, filesUsed: readyFiles.length, fileDescriptions, hasManual: hasManualData });
       setMatEntries([]);
       setReadyFiles([]);
@@ -743,6 +863,13 @@ function PageUpload({ branches, onSave, showToast }) {
       <div className="form-grid-wide">
         <div>
           <SectionTitle>① อัปโหลดไฟล์</SectionTitle>
+          <div className="card" style={{ padding: 12, marginBottom: 10 }}>
+            <div className="form-grid-2" style={{ marginBottom: 8 }}>
+              <FormGroup label="ที่มาของเอกสาร"><input className="input" value={docSource} onChange={e => setDocSource(e.target.value)} placeholder="เช่น บิล MEA / Supplier / POS" /></FormGroup>
+              <FormGroup label="ผู้ส่ง/เจ้าของเอกสาร"><input className="input" value={docOwner} onChange={e => setDocOwner(e.target.value)} placeholder="ชื่อผู้ส่งหรือแผนก" /></FormGroup>
+            </div>
+            <FormGroup label="เลขที่อ้างอิง / หมายเหตุไฟล์"><input className="input" value={docReference} onChange={e => setDocReference(e.target.value)} placeholder="เลขบิล เลข PO หรือ URL ต้นทาง" /></FormGroup>
+          </div>
           <div onClick={() => fileRef.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); Array.from(e.dataTransfer.files).forEach(handleFile); }} style={{ border: "2px dashed #86efac", borderRadius: 20, padding: "40px 20px", textAlign: "center", background: "#f0fdf4", cursor: "pointer" }}>
             <input ref={fileRef} type="file" multiple accept=".xlsx,.csv,.pdf" style={{ display: "none" }} onChange={e => Array.from(e.target.files || []).forEach(handleFile)} />
             <div style={{ fontSize: 44, marginBottom: 10 }}>📂</div>
@@ -758,7 +885,7 @@ function PageUpload({ branches, onSave, showToast }) {
                   <span style={{ fontSize: 28 }}>{({ xlsx: "📊", csv: "📋", pdf: "📄" })[f.ext]}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</div>
-                    <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{f.size} · {f.ext.toUpperCase()}</div>
+                    <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{f.size} · {f.ext.toUpperCase()} · {f.source} · {f.owner}</div>
                     {f.status === "processing" && <div style={{ width: "100%", height: 3, background: "#dcfce7", borderRadius: 3, marginTop: 6, overflow: "hidden" }}><div style={{ height: "100%", background: "linear-gradient(90deg,#16a34a,#22c55e)", animation: "progress .9s ease forwards" }} /></div>}
                     {f.status === "done" && <div style={{ fontSize: 10, color: "#15803d", marginTop: 3 }}>✓ พร้อมวิเคราะห์</div>}
                   </div>
@@ -892,9 +1019,17 @@ function PageUpload({ branches, onSave, showToast }) {
   );
 }
 
-function PageAnalytics({ branches, monthlyCo2 }) {
+function PageAnalytics({ branches, monthlyCo2, entriesLog }) {
   const hasData = branches.some(b => b.hasData);
   const totals = branches.reduce((acc, b) => ({ co2: +(acc.co2 + b.co2).toFixed(4), elec: acc.elec + b.elec, water: acc.water + b.water, fuel: acc.fuel + b.fuel, entries: acc.entries + b.entries }), { co2: 0, elec: 0, water: 0, fuel: 0, entries: 0 });
+  const topMaterialsByMonth = groupTopByMonth(entriesLog, entry => entry.materials || []);
+  const topWasteByMonth = groupTopByMonth(entriesLog, getWasteItems);
+  const latestMonthIdx = monthlyCo2.reduce((latest, value, idx) => value > 0 ? idx : latest, -1);
+  const prevMonthIdx = latestMonthIdx > 0 ? latestMonthIdx - 1 : -1;
+  const latestMonthValue = latestMonthIdx >= 0 ? monthlyCo2[latestMonthIdx] : 0;
+  const prevMonthValue = prevMonthIdx >= 0 ? monthlyCo2[prevMonthIdx] : 0;
+  const monthDelta = +(latestMonthValue - prevMonthValue).toFixed(4);
+  const monthDeltaPct = prevMonthValue > 0 ? +((monthDelta / prevMonthValue) * 100).toFixed(1) : null;
   const forecasts = ["ก.ค.", "ส.ค.", "ก.ย."].map((m, i) => ({ month: m, val: (totals.co2 * (1 + (i + 1) * 0.025)).toFixed(2), trend: (i + 1) * 2.5 }));
   const e = +(totals.elec * 0.4716 / 1000).toFixed(2);
   const w = +(totals.water * 0.00149).toFixed(2);
@@ -917,12 +1052,39 @@ function PageAnalytics({ branches, monthlyCo2 }) {
         )}
       </div>
       <SectionTitle>วิเคราะห์ข้อมูล</SectionTitle>
+      <div className="card" style={{ padding: 16, marginBottom: 14, borderColor: monthDelta <= 0 ? "#bbf7d0" : "#fecaca" }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: monthDelta <= 0 ? "#166534" : "#b91c1c" }}>เปรียบเทียบรายเดือน</div>
+        <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
+          {latestMonthIdx < 0 ? "ยังไม่มีข้อมูลรายเดือนสำหรับเปรียบเทียบ" : `${MONTHS[latestMonthIdx]} เทียบกับ ${prevMonthIdx >= 0 ? MONTHS[prevMonthIdx] : "เดือนก่อนหน้า"}: ${monthDelta <= 0 ? "ดีขึ้น" : "แย่ลง"} ${Math.abs(monthDelta)} tCO2e${monthDeltaPct !== null ? ` (${Math.abs(monthDeltaPct)}%)` : ""}`}
+        </div>
+      </div>
       <div className="analytics-grid" style={{ marginBottom: 14 }}>
         {[["Carbon รวม", totals.co2, "tCO₂e", totals.co2 > 0], ["ไฟฟ้ารวม", totals.elec > 0 ? numFmt(totals.elec) : "0", "kWh", totals.elec > 0], ["น้ำรวม", totals.water > 0 ? numFmt(totals.water) : "0", "m³", totals.water > 0], ["เชื้อเพลิง", totals.fuel > 0 ? numFmt(totals.fuel) : "0", "ลิตร", totals.fuel > 0]].map(([lbl, val, unit, hasD]) => <div key={lbl} className="card" style={{ padding: 12 }}><div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600, marginBottom: 4 }}>{lbl}</div><div style={{ fontSize: 22, fontWeight: 800, color: hasD ? "#166534" : "#6b7280", lineHeight: 1 }}>{val}</div><div style={{ fontSize: 10, color: "#6b7280" }}>{unit}</div></div>)}
       </div>
       <div className="desktop-two">
         <div className="card" style={{ padding: 18, marginBottom: 14 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>Carbon รายเดือน</div><div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>tCO₂e แต่ละเดือน</div><MiniBarChart data={monthlyCo2} labels={MONTHS} /></div>
         <div className="card" style={{ padding: 18 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 4 }}>สัดส่วน Carbon Emission</div><div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>แยกตามแหล่งกำเนิด</div><DonutChart slices={[e, w, f]} labels={[`ไฟฟ้า · ${e} tCO₂e`, `น้ำ · ${w} tCO₂e`, `เชื้อเพลิง · ${f} tCO₂e`]} /></div>
+      </div>
+      <SectionTitle style={{ marginTop: 18 }}>วิเคราะห์ขยะและวัสดุรายเดือน</SectionTitle>
+      <div className="desktop-two">
+        <div className="card" style={{ padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#14532d", marginBottom: 8 }}>วัสดุที่เบิกใช้เยอะสุด</div>
+          {Object.keys(topMaterialsByMonth).length === 0 ? <div style={{ fontSize: 12, color: "#6b7280" }}>ยังไม่มีข้อมูลวัสดุ</div> : Object.entries(topMaterialsByMonth).map(([month, items]) => (
+            <div key={month} style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#166534", marginBottom: 4 }}>{month}</div>
+              {items.map(item => <div key={`${month}-${item.name}`} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "5px 0", borderBottom: "1px solid #f0fdf4" }}><span>{item.name}</span><b>{numFmt(item.qty)} {item.unit}</b></div>)}
+            </div>
+          ))}
+        </div>
+        <div className="card" style={{ padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#14532d", marginBottom: 8 }}>ประเภทขยะที่เยอะสุด</div>
+          {Object.keys(topWasteByMonth).length === 0 ? <div style={{ fontSize: 12, color: "#6b7280" }}>ยังไม่มีข้อมูลขยะ</div> : Object.entries(topWasteByMonth).map(([month, items]) => (
+            <div key={month} style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#166534", marginBottom: 4 }}>{month}</div>
+              {items.map(item => <div key={`${month}-${item.name}`} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "5px 0", borderBottom: "1px solid #f0fdf4" }}><span>{item.name}</span><b>{numFmt(item.qty)} {item.unit}</b></div>)}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -966,14 +1128,21 @@ function PageRanking({ branches, onBranchClick }) {
   );
 }
 
-function PageReports({ branches, showToast }) {
+function PageReports({ branches, monthlyCo2, yearlyStats, entriesLog, showToast }) {
   const [selectedReport, setSelectedReport] = useState(null);
   const totals = branches.reduce((acc, b) => ({ co2: +(acc.co2 + b.co2).toFixed(4), entries: acc.entries + b.entries }), { co2: 0, entries: 0 });
   const credits = Math.round(totals.co2 * 2.4);
   const downloadReport = type => {
     const names = { esg: "Executive ESG Report", carbon: "Carbon Emission Report", tcfd: "TCFD Disclosure Report", monthly: "Monthly Sustainability Report", branch: "Branch Comparison Report" };
-    showToast(`📥 กำลังสร้าง ${names[type]}...`);
-    setTimeout(() => showToast(`✅ พร้อมดาวน์โหลด ${names[type]}`), 1200);
+    const reportName = names[type] || "Sustainability Report";
+    const stamp = new Date().toISOString().slice(0, 10);
+    if (type === "monthly") {
+      const csv = buildCsv([["Month", "tCO2e"], ...monthlyCo2.map((v, i) => [MONTHS[i], v])]);
+      downloadBlob(`hillkoff-monthly-${stamp}.csv`, csv, "text/csv;charset=utf-8");
+    } else {
+      downloadBlob(`hillkoff-${type || "report"}-${stamp}.html`, createReportHtml({ title: reportName, totals, branches, monthlyCo2, yearlyStats, entriesLog }));
+    }
+    showToast(`✅ ดาวน์โหลด ${reportName} เรียบร้อย`);
   };
   const reports = [
     ["📊", "Executive ESG Report", "สรุปผลการดำเนินงาน ESG ประจำเดือน พร้อม KPI และ Carbon Summary", "PDF · Excel", "esg"],
@@ -1022,8 +1191,96 @@ function PageReports({ branches, showToast }) {
           </button>
         ))}
       </div>
-      <button onClick={() => { showToast("🔄 กำลังสร้างรายงานทั้งหมด..."); setTimeout(() => showToast("✅ สร้างรายงาน 5 ฉบับเรียบร้อย"), 1500); }} style={{ width: "100%", padding: 14, background: "linear-gradient(135deg,#166534,#16a34a)", color: "#fff", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", marginTop: 12 }}>🔄 สร้างรายงานทั้งหมด</button>
+      <button onClick={() => downloadReport("esg")} style={{ width: "100%", padding: 14, background: "linear-gradient(135deg,#166534,#16a34a)", color: "#fff", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", marginTop: 12 }}>🔄 สร้างรายงานทั้งหมด</button>
       <ReportDetailModal report={selectedReport ? REPORT_DETAILS[selectedReport] : null} totals={totals} onClose={() => setSelectedReport(null)} onDownload={() => downloadReport(selectedReport)} />
+    </div>
+  );
+}
+
+function PageSettings({ user, userProfile, loginHistory, entriesLog, onProfileChange }) {
+  const [query, setQuery] = useState("");
+  const documents = entriesLog.flatMap(entry => (entry.documents || []).map(doc => ({
+    ...doc,
+    month: entry.month,
+    branchId: entry.branchId,
+    branchName: BRANCHES_INIT.find(b => b.id === entry.branchId)?.name || entry.branchId
+  })));
+  const filteredDocs = documents.filter(doc => {
+    const text = [doc.name, doc.source, doc.owner, doc.reference, doc.branchName, doc.month, doc.description].join(" ").toLowerCase();
+    return text.includes(query.toLowerCase());
+  });
+  const filteredEntries = entriesLog.filter(entry => {
+    const branchName = BRANCHES_INIT.find(b => b.id === entry.branchId)?.name || entry.branchId;
+    const text = [branchName, entry.month, entry.note, ...(entry.materials || []).map(m => m.name)].join(" ").toLowerCase();
+    return text.includes(query.toLowerCase());
+  });
+
+  return (
+    <div className="fade-up">
+      <PageHeader title="⚙️ Settings" sub="ข้อมูลผู้ใช้ · ประวัติล็อกอิน · ประวัติเอกสารและการคีย์ข้อมูล" />
+      <FormCard title="👤 ข้อมูลผู้ใช้งาน" sub="ข้อมูลนี้ใช้ประกอบประวัติและรายงานภายในระบบ">
+        <div className="form-grid-2" style={{ marginBottom: 10 }}>
+          <FormGroup label="อีเมลล็อกอิน"><input className="input" value={user?.email || "-"} readOnly /></FormGroup>
+          <FormGroup label="User ID"><input className="input" value={user?.id || "-"} readOnly /></FormGroup>
+        </div>
+        <div className="form-grid-2">
+          <FormGroup label="ชื่อผู้ใช้งาน"><input className="input" value={userProfile.name || ""} onChange={e => onProfileChange({ ...userProfile, name: e.target.value })} placeholder="ชื่อ-นามสกุล" /></FormGroup>
+          <FormGroup label="แผนก / บทบาท"><input className="input" value={userProfile.role || ""} onChange={e => onProfileChange({ ...userProfile, role: e.target.value })} placeholder="เช่น Sustainability / Admin" /></FormGroup>
+        </div>
+      </FormCard>
+
+      <div className="card" style={{ padding: 12, marginBottom: 14 }}>
+        <FormGroup label="ค้นหาด่วนเอกสาร / ประวัติการคีย์ข้อมูล">
+          <input className="input" value={query} onChange={e => setQuery(e.target.value)} placeholder="ค้นหาชื่อไฟล์ แหล่งที่มา เลขอ้างอิง สาขา เดือน หรือวัสดุ" />
+        </FormGroup>
+      </div>
+
+      <div className="desktop-two">
+        <div>
+          <SectionTitle>ประวัติการล็อกอิน</SectionTitle>
+          {(loginHistory || []).slice(0, 12).map((item, i) => (
+            <div key={`${item.at}-${i}`} className="card" style={{ padding: 12, marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#14532d" }}>{item.email}</div>
+              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 3 }}>{new Date(item.at).toLocaleString()} · {item.userAgent || "browser"}</div>
+            </div>
+          ))}
+          {(!loginHistory || loginHistory.length === 0) && <div className="card" style={{ padding: 18, fontSize: 12, color: "#6b7280" }}>ยังไม่มีประวัติล็อกอิน</div>}
+        </div>
+
+        <div>
+          <SectionTitle>ประวัติการคีย์ข้อมูล</SectionTitle>
+          {filteredEntries.slice(0, 12).map(entry => {
+            const branchName = BRANCHES_INIT.find(b => b.id === entry.branchId)?.name || entry.branchId;
+            return (
+              <div key={entry.id} className="card" style={{ padding: 12, marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#14532d" }}>{branchName} · {entry.month}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#166534" }}>{entry.co2} tCO₂e</div>
+                </div>
+                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>ไฟฟ้า {entry.elec} kWh · น้ำ {entry.water} m³ · เชื้อเพลิง {entry.fuel} ลิตร · เอกสาร {(entry.documents || []).length} ไฟล์</div>
+              </div>
+            );
+          })}
+          {filteredEntries.length === 0 && <div className="card" style={{ padding: 18, fontSize: 12, color: "#6b7280" }}>ไม่พบประวัติการคีย์ข้อมูล</div>}
+        </div>
+      </div>
+
+      <SectionTitle style={{ marginTop: 18 }}>ประวัติเอกสารและที่มา</SectionTitle>
+      {filteredDocs.length === 0 ? <div className="card" style={{ padding: 18, fontSize: 12, color: "#6b7280" }}>ไม่พบเอกสารตามคำค้น</div> : filteredDocs.slice(0, 30).map(doc => (
+        <div key={doc.id} className="card" style={{ padding: 14, marginBottom: 8 }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 24 }}>{({ xlsx: "📊", csv: "📋", pdf: "📄" })[doc.ext] || "📎"}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#14532d", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</div>
+              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4, lineHeight: 1.6 }}>
+                ที่มา: <b>{doc.source}</b> · ผู้ส่ง: <b>{doc.owner}</b> · อ้างอิง: <b>{doc.reference}</b><br />
+                {doc.branchName} · {doc.month} · {doc.size} · อัปโหลด {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleString() : "-"}
+              </div>
+              {doc.description && <div style={{ fontSize: 11, color: "#166534", marginTop: 5 }}>{doc.description}</div>}
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1032,8 +1289,14 @@ export default function App() {
   const router = useRouter();
   const [authLoading, setAuthLoading] = useState(true);
   const [page, setPage] = useState("home");
-  const [branches, setBranches] = useState(BRANCHES_INIT.map(b => ({ ...b, elec: 0, water: 0, fuel: 0, co2: 0, score: 0, entries: 0, hasData: false, waste: { general: 0, recycle: 0, organic: 0, hazard: 0 }, status: "none" })));
+  const [branches, setBranches] = useState(emptyBranches);
   const [monthlyCo2, setMonthlyCo2] = useState(Array(12).fill(0));
+  const [yearlyStats, setYearlyStats] = useState({});
+  const [entriesLog, setEntriesLog] = useState([]);
+  const [loginHistory, setLoginHistory] = useState([]);
+  const [userProfile, setUserProfile] = useState({});
+  const [currentUser, setCurrentUser] = useState(null);
+  const [dashboardLoaded, setDashboardLoaded] = useState(false);
   const [modalBranchIdx, setModalBranchIdx] = useState(null);
   const [toast, setToast] = useState({ msg: "", show: false });
   const [aiOpen, setAiOpen] = useState(false);
@@ -1058,11 +1321,52 @@ export default function App() {
         return;
       }
 
+      setCurrentUser(data.user);
+      try {
+        const response = await fetch("/api/dashboard", { cache: "no-store" });
+        const saved = await response.json();
+        if (response.ok && saved?.data) {
+          const normalized = normalizeDashboardState(saved.data);
+          setBranches(normalized.branches);
+          setMonthlyCo2(normalized.monthlyCo2);
+          setYearlyStats(normalized.yearlyStats);
+          setEntriesLog(normalized.entriesLog);
+          setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...normalized.loginHistory].slice(0, 50));
+          setUserProfile({ email: data.user.email, ...normalized.userProfile });
+        } else {
+          setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }]);
+          setUserProfile({ email: data.user.email });
+        }
+      } catch (error) {
+        console.warn("Dashboard load failed:", error);
+        setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }]);
+        setUserProfile({ email: data.user.email });
+      } finally {
+        setDashboardLoaded(true);
+      }
+
       setAuthLoading(false);
     };
 
     checkAuth();
   }, [router]);
+
+  useEffect(() => {
+    if (!dashboardLoaded) return;
+    const timer = setTimeout(async () => {
+      try {
+        await fetch("/api/dashboard", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ branches, monthlyCo2, yearlyStats, entriesLog, loginHistory, userProfile })
+        });
+      } catch (error) {
+        console.warn("Dashboard save failed:", error);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [branches, monthlyCo2, yearlyStats, entriesLog, loginHistory, userProfile, dashboardLoaded]);
 
   const showToast = useCallback(msg => {
     setToast({ msg, show: true });
@@ -1070,7 +1374,7 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(t => ({ ...t, show: false })), 2500);
   }, []);
 
-  const handleSave = useCallback(({ branchId, month, elec, water, fuel, co2Total, wGen, wRec, wOrg, wHaz, recycleRate }) => {
+  const handleSave = useCallback(({ branchId, month, elec, water, fuel, co2Total, wGen, wRec, wOrg, wHaz, recycleRate, materials = [], documents = [], note = "" }) => {
     setBranches(prev => prev.map(b => {
       if (b.id !== branchId) return b;
       const newCo2 = +(b.co2 + co2Total).toFixed(4);
@@ -1097,16 +1401,46 @@ export default function App() {
       c[monthIdx] = +(c[monthIdx] + co2Total).toFixed(4);
       return c;
     });
+    const year = month ? month.split("-")[0] : String(new Date().getFullYear());
+    setYearlyStats(prev => {
+      const current = prev[year] || { co2: 0, elec: 0, water: 0, fuel: 0, entries: 0 };
+      return {
+        ...prev,
+        [year]: {
+          co2: +(current.co2 + co2Total).toFixed(4),
+          elec: current.elec + elec,
+          water: current.water + water,
+          fuel: current.fuel + fuel,
+          entries: current.entries + 1
+        }
+      };
+    });
+    setEntriesLog(prev => [...prev, {
+      id: `${Date.now()}-${branchId}`,
+      branchId,
+      month,
+      elec,
+      water,
+      fuel,
+      co2: co2Total,
+      waste: { general: wGen, recycle: wRec, organic: wOrg, hazard: wHaz },
+      materials,
+      documents,
+      note,
+      user: { id: currentUser?.id, email: currentUser?.email },
+      createdAt: new Date().toISOString()
+    }]);
     const bn = BRANCHES_INIT.find(b => b.id === branchId)?.name || branchId;
     showToast(`✅ อัปเดตข้อมูล ${bn} เรียบร้อย`);
-  }, [showToast]);
+  }, [showToast, currentUser]);
 
   const navItems = [
     { id: "home", icon: "🏠", label: "หน้าหลัก" },
     { id: "upload", icon: "📤", label: "Upload" },
     { id: "analytics", icon: "📊", label: "Analytics" },
     { id: "ranking", icon: "🏆", label: "Ranking" },
-    { id: "reports", icon: "📄", label: "Reports" }
+    { id: "reports", icon: "📄", label: "Reports" },
+    { id: "settings", icon: "⚙️", label: "Settings" }
   ];
 
   if (authLoading) {
@@ -1129,9 +1463,10 @@ export default function App() {
         <div className="page-container">
           {page === "home" && <PageHome branches={branches} monthlyCo2={monthlyCo2} onBranchClick={i => setModalBranchIdx(i)} onGoUpload={() => setPage("upload")} />}
           {page === "upload" && <PageUpload branches={branches} onSave={handleSave} showToast={showToast} />}
-          {page === "analytics" && <PageAnalytics branches={branches} monthlyCo2={monthlyCo2} />}
+          {page === "analytics" && <PageAnalytics branches={branches} monthlyCo2={monthlyCo2} entriesLog={entriesLog} />}
           {page === "ranking" && <PageRanking branches={branches} onBranchClick={i => setModalBranchIdx(i)} />}
-          {page === "reports" && <PageReports branches={branches} showToast={showToast} />}
+          {page === "reports" && <PageReports branches={branches} monthlyCo2={monthlyCo2} yearlyStats={yearlyStats} entriesLog={entriesLog} showToast={showToast} />}
+          {page === "settings" && <PageSettings user={currentUser} userProfile={userProfile} loginHistory={loginHistory} entriesLog={entriesLog} onProfileChange={setUserProfile} />}
         </div>
       </div>
 

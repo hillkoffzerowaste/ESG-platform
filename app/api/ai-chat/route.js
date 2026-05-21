@@ -19,26 +19,26 @@ export async function POST(req) {
       },
       body: JSON.stringify({
         systemInstruction: {
-          parts: [
-            {
-              text:
-                "คุณคือ AI Assistant ภาษาไทยของ Hillkoff ตอบคำถามทั่วไปได้ทุกเรื่องอย่างกระชับ เป็นมิตร และเป็นประโยชน์ เช่น ความรู้ทั่วไป งานเอกสาร การวางแผน ไอเดียธุรกิจ การเขียนข้อความ รวมถึง ESG, Carbon Footprint, Scope 1/2/3, Zero Waste, Carbon Credit และ TCFD ถ้าผู้ใช้ถามสรุปตัวเลขจริงของ dashboard หรือข้อมูลรายสาขา ให้ใช้ตัวเลขจาก context เท่านั้น ห้ามแต่งตัวเลขเอง ถ้า context ยังไม่มีข้อมูล ให้บอกว่าต้องกรอกหรืออัปโหลดข้อมูลเพิ่มก่อน"
-            }
-          ]
+          parts: [{
+            text: [
+              "คุณคือ AI Assistant ภาษาไทยของ Hillkoff Zero Waste Analytics",
+              "ตอบให้ยืดหยุ่น เป็นธรรมชาติ และช่วยคิดต่อได้ทั้งเรื่องทั่วไป งานเอกสาร ธุรกิจ ESG Carbon Footprint Scope 1/2/3 Zero Waste Carbon Credit และ TCFD",
+              "ถ้าผู้ใช้ถามข้อมูลตัวเลข dashboard ให้ใช้เฉพาะตัวเลขจาก context ห้ามเดา ถ้าข้อมูลไม่พอให้บอกว่าต้องกรอกหรืออัปโหลดข้อมูลเพิ่ม",
+              "ถ้าคำถามกำกวม ให้สรุปสมมติฐานสั้นๆ แล้วให้คำตอบที่ใช้ได้ทันที",
+              "ถ้า API หรือ context มีข้อจำกัด ให้ตอบด้วยทางเลือกปฏิบัติ ไม่ใช่ปฏิเสธสั้นๆ"
+            ].join("\n")
+          }]
         },
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: `คำถาม: ${message}\n\nข้อมูล dashboard JSON:\n${JSON.stringify(context, null, 2)}`
-              }
-            ]
-          }
-        ],
+        contents: [{
+          role: "user",
+          parts: [{
+            text: `คำถาม: ${message}\n\nข้อมูล dashboard JSON:\n${JSON.stringify(context, null, 2)}`
+          }]
+        }],
         generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 700
+          temperature: 0.65,
+          topP: 0.9,
+          maxOutputTokens: 1100
         }
       })
     });
@@ -55,7 +55,7 @@ export async function POST(req) {
 
     const reply =
       data.candidates?.[0]?.content?.parts?.map(part => part.text || "").join("") ||
-      "ขออภัยครับ ตอนนี้ยังสรุปคำตอบจาก Gemini ไม่ได้";
+      "ขออภัยครับ ตอนนี้ยังสรุปคำตอบจาก AI ไม่ได้ ลองถามใหม่อีกครั้งหรือระบุข้อมูลเพิ่มได้ครับ";
 
     return Response.json({ reply });
   } catch (error) {

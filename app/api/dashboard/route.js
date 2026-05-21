@@ -1,30 +1,30 @@
-import { createClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
+import { NextResponse } from "next/server";
+import { readDashboardState, writeDashboardState } from "@/lib/googleFirestore";
 
 export async function GET() {
-
-console.log("ENV:", process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
-  
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-
-  console.log("ERROR:", error)
-
-  if (error) {
-    return NextResponse.json({
-      success: false,
-      error: error.message
-    })
+  try {
+    const state = await readDashboardState();
+    return NextResponse.json({ success: true, data: state });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error.message || "Dashboard read failed" },
+      { status: 500 }
+    );
   }
+}
 
-  return NextResponse.json({
-    success: true,
-    data
-  })
+export async function POST(req) {
+  try {
+    const state = await req.json();
+    await writeDashboardState({
+      ...state,
+      savedAt: new Date().toISOString()
+    });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error.message || "Dashboard write failed" },
+      { status: 500 }
+    );
+  }
 }
