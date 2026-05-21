@@ -10,21 +10,34 @@ export default function Dashboard() {
 
   useEffect(() => {
     const check = async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data: sessionData } = await supabase.auth.getSession();
 
-      if (!data.user) {
-        router.push("/login");
+      if (!sessionData.session) {
+        router.replace("/login");
+        router.refresh();
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error || !data.user) {
+        await supabase.auth.signOut();
+        router.replace("/login");
+        router.refresh();
+        setLoading(false);
       } else {
         setLoading(false);
       }
     };
 
     check();
-  }, []);
+  }, [router]);
 
   const logout = async () => {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.replace("/login");
+    router.refresh();
   };
 
   if (loading) return <p>Loading...</p>;

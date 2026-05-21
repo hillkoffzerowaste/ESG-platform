@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 const MAT_CATALOG = {
   cafe: {
@@ -1027,6 +1029,8 @@ function PageReports({ branches, showToast }) {
 }
 
 export default function App() {
+  const router = useRouter();
+  const [authLoading, setAuthLoading] = useState(true);
   const [page, setPage] = useState("home");
   const [branches, setBranches] = useState(BRANCHES_INIT.map(b => ({ ...b, elec: 0, water: 0, fuel: 0, co2: 0, score: 0, entries: 0, hasData: false, waste: { general: 0, recycle: 0, organic: 0, hazard: 0 }, status: "none" })));
   const [monthlyCo2, setMonthlyCo2] = useState(Array(12).fill(0));
@@ -1034,6 +1038,31 @@ export default function App() {
   const [toast, setToast] = useState({ msg: "", show: false });
   const [aiOpen, setAiOpen] = useState(false);
   const toastTimer = useRef(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      if (!sessionData.session) {
+        router.replace("/login");
+        router.refresh();
+        return;
+      }
+
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error || !data.user) {
+        await supabase.auth.signOut();
+        router.replace("/login");
+        router.refresh();
+        return;
+      }
+
+      setAuthLoading(false);
+    };
+
+    checkAuth();
+  }, [router]);
 
   const showToast = useCallback(msg => {
     setToast({ msg, show: true });
@@ -1079,6 +1108,19 @@ export default function App() {
     { id: "ranking", icon: "🏆", label: "Ranking" },
     { id: "reports", icon: "📄", label: "Reports" }
   ];
+
+  if (authLoading) {
+    return (
+      <>
+        <style>{css}</style>
+        <div className="app-shell">
+          <div className="page-container" style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+            <div style={{ color: "#166534", fontWeight: 700 }}>Loading...</div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
