@@ -150,6 +150,38 @@ const getWasteItems = entry => [
   { name: "ขยะอันตราย/ฝังกลบ", qty: entry.waste?.hazard || 0, unit: "กก." }
 ];
 
+const dashboardStorageKey = userId => `hillkoff-dashboard-state:${userId || "guest"}`;
+
+const readLocalDashboardState = userId => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(dashboardStorageKey(userId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeLocalDashboardState = (userId, state) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(dashboardStorageKey(userId), JSON.stringify({
+      ...state,
+      savedAt: new Date().toISOString()
+    }));
+  } catch (error) {
+    console.warn("Local dashboard save failed:", error);
+  }
+};
+
+const chooseNewestDashboardState = (localState, remoteState) => {
+  if (!remoteState?.savedAt) return localState;
+  if (!localState?.savedAt) return remoteState;
+  return new Date(localState.savedAt).getTime() > new Date(remoteState.savedAt).getTime()
+    ? localState
+    : remoteState;
+};
+
 const projectWhitepaper = `
   <section class="whitepaper">
     <h2>Project Whitepaper: Hillkoff Zero Waste Analytics</h2>
@@ -1322,11 +1354,19 @@ export default function App() {
       }
 
       setCurrentUser(data.user);
+      const localState = normalizeDashboardState(readLocalDashboardState(data.user.id));
+      setBranches(localState.branches);
+      setMonthlyCo2(localState.monthlyCo2);
+      setYearlyStats(localState.yearlyStats);
+      setEntriesLog(localState.entriesLog);
+      setLoginHistory(localState.loginHistory);
+      setUserProfile({ email: data.user.email, ...localState.userProfile });
+
       try {
         const response = await fetch("/api/dashboard", { cache: "no-store" });
         const saved = await response.json();
         if (response.ok && saved?.data) {
-          const normalized = normalizeDashboardState(saved.data);
+          const normalized = chooseNewestDashboardState(localState, normalizeDashboardState(saved.data));
           setBranches(normalized.branches);
           setMonthlyCo2(normalized.monthlyCo2);
           setYearlyStats(normalized.yearlyStats);
@@ -1334,13 +1374,13 @@ export default function App() {
           setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...normalized.loginHistory].slice(0, 50));
           setUserProfile({ email: data.user.email, ...normalized.userProfile });
         } else {
-          setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }]);
-          setUserProfile({ email: data.user.email });
+          setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...localState.loginHistory].slice(0, 50));
+          setUserProfile({ email: data.user.email, ...localState.userProfile });
         }
       } catch (error) {
         console.warn("Dashboard load failed:", error);
-        setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }]);
-        setUserProfile({ email: data.user.email });
+        setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...localState.loginHistory].slice(0, 50));
+        setUserProfile({ email: data.user.email, ...localState.userProfile });
       } finally {
         setDashboardLoaded(true);
       }
@@ -1353,12 +1393,14 @@ export default function App() {
 
   useEffect(() => {
     if (!dashboardLoaded) return;
+    const snapshot = { branches, monthlyCo2, yearlyStats, entriesLog, loginHistory, userProfile };
+    writeLocalDashboardState(currentUser?.id, snapshot);
     const timer = setTimeout(async () => {
       try {
         await fetch("/api/dashboard", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ branches, monthlyCo2, yearlyStats, entriesLog, loginHistory, userProfile })
+          body: JSON.stringify(snapshot)
         });
       } catch (error) {
         console.warn("Dashboard save failed:", error);
@@ -1366,7 +1408,7 @@ export default function App() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [branches, monthlyCo2, yearlyStats, entriesLog, loginHistory, userProfile, dashboardLoaded]);
+  }, [branches, monthlyCo2, yearlyStats, entriesLog, loginHistory, userProfile, dashboardLoaded, currentUser]);
 
   const showToast = useCallback(msg => {
     setToast({ msg, show: true });
