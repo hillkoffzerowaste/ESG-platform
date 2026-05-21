@@ -8,8 +8,8 @@ const supabase = createClient(
 
 export async function GET() {
 
-  console.log("URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
-
+console.log("ENV:", process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
+  
   const { data, error } = await supabase
     .from('users')
     .select('*')
