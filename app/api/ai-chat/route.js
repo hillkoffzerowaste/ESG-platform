@@ -15,6 +15,7 @@ async function askGemini({ apiKey, model, message, context }) {
       systemInstruction: {
         parts: [{
           text: [
+            "You can answer questions from uploaded document evidence in context.documents. When a question asks about source, origin, invoice, file, or evidence, cite the document name, source, owner, reference, branch, month, and relevant evidence lines. Do not invent document facts that are not in context.",
             "คุณคือ AI Assistant ภาษาไทยของ Hillkoff Zero Waste Analytics",
             "ตอบได้ทั้งเรื่องทั่วไป งานเอกสาร การคิดไอเดีย การสรุป การเขียนข้อความ ธุรกิจ และเรื่อง ESG/Carbon/Zero Waste/TCFD",
             "ถ้าคำถามเป็นเรื่องทั่วไป ให้ตอบตรงคำถามตามความรู้ทั่วไป ไม่ต้องผูกกับ dashboard",

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { getFirebaseAuth, getGoogleProvider } from "@/lib/firebase";
+import { onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -12,15 +13,21 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const redirectIfLoggedIn = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        router.replace("/");
-        router.refresh();
-      }
-    };
+    let unsubscribe = () => {};
 
-    redirectIfLoggedIn();
+    try {
+      const auth = getFirebaseAuth();
+      unsubscribe = onAuthStateChanged(auth, user => {
+        if (user) {
+          router.replace("/");
+          router.refresh();
+        }
+      });
+    } catch (error) {
+      setError(error.message);
+    }
+
+    return () => unsubscribe();
   }, [router]);
 
   const handleLogin = async (event) => {
@@ -28,57 +35,32 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
+    try {
+      const auth = getFirebaseAuth();
+      await signInWithEmailAndPassword(auth, email, password);
+      router.replace("/");
+      router.refresh();
+      window.location.assign("/");
+    } catch (error) {
       setError(error.message);
       setLoading(false);
-      return;
     }
-
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
-      setError("Login สำเร็จไม่ครบถ้วน กรุณาตรวจสอบว่าอีเมลยืนยันแล้วหรือยัง");
-      setLoading(false);
-      return;
-    }
-
-    router.replace("/");
-    router.refresh();
-    window.location.assign("/");
   };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError("");
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        skipBrowserRedirect: true,
-      },
-    });
-
-    if (error) {
-      const message = error.message.includes("Unsupported provider")
-        ? "ยังไม่ได้เปิด Google provider ใน Supabase Auth"
-        : error.message;
-      setError(message);
+    try {
+      const auth = getFirebaseAuth();
+      await signInWithPopup(auth, getGoogleProvider());
+      router.replace("/");
+      router.refresh();
+      window.location.assign("/");
+    } catch (error) {
+      setError(error.message);
       setLoading(false);
-      return;
     }
-
-    if (!data?.url) {
-      setError("Supabase ไม่ได้ส่ง URL สำหรับ Google login กลับมา");
-      setLoading(false);
-      return;
-    }
-
-    window.location.assign(data.url);
   };
 
   return (

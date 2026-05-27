@@ -2,87 +2,88 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { getFirebaseAuth, toAppUser } from "@/lib/firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
 const MAT_CATALOG = {
   cafe: {
-    label: "☕ วัสดุร้านกาแฟ",
+    label: "โ• เธงเธฑเธชเธ”เธธเธฃเนเธฒเธเธเธฒเนเธ",
     items: [
-      ["แก้วกระดาษ", "ใบ"], ["แก้วพลาสติกใส", "ใบ"], ["แก้วพลาสติกสี", "ใบ"],
-      ["หลอดดูดพลาสติก", "ชิ้น"], ["หลอดดูดกระดาษ", "ชิ้น"], ["ฝาแก้วแบน", "ชิ้น"],
-      ["ฝาแก้วโดม", "ชิ้น"], ["ฝาแก้วมีรู", "ชิ้น"], ["ถุงพลาสติกหูหิ้ว", "ใบ"],
-      ["ถุงกระดาษ", "ใบ"], ["ซองน้ำตาล", "ชิ้น"], ["ซองครีมเทียม", "ชิ้น"],
-      ["ผ้าเช็ดมือ (ทิชชู)", "แพ็ค"], ["กล่องกระดาษใส่ขนม", "ใบ"], ["ไม้คนกาแฟ", "ชิ้น"],
-      ["ผ้ากรองกาแฟ", "แผ่น"], ["แคปซูลกาแฟ", "กล่อง"], ["ผงกาแฟ", "กิโลกรัม"]
+      ["เนเธเนเธงเธเธฃเธฐเธ”เธฒเธฉ", "เนเธ"], ["เนเธเนเธงเธเธฅเธฒเธชเธ•เธดเธเนเธช", "เนเธ"], ["เนเธเนเธงเธเธฅเธฒเธชเธ•เธดเธเธชเธต", "เนเธ"],
+      ["เธซเธฅเธญเธ”เธ”เธนเธ”เธเธฅเธฒเธชเธ•เธดเธ", "เธเธดเนเธ"], ["เธซเธฅเธญเธ”เธ”เธนเธ”เธเธฃเธฐเธ”เธฒเธฉ", "เธเธดเนเธ"], ["เธเธฒเนเธเนเธงเนเธเธ", "เธเธดเนเธ"],
+      ["เธเธฒเนเธเนเธงเนเธ”เธก", "เธเธดเนเธ"], ["เธเธฒเนเธเนเธงเธกเธตเธฃเธน", "เธเธดเนเธ"], ["เธ–เธธเธเธเธฅเธฒเธชเธ•เธดเธเธซเธนเธซเธดเนเธง", "เนเธ"],
+      ["เธ–เธธเธเธเธฃเธฐเธ”เธฒเธฉ", "เนเธ"], ["เธเธญเธเธเนเธณเธ•เธฒเธฅ", "เธเธดเนเธ"], ["เธเธญเธเธเธฃเธตเธกเน€เธ—เธตเธขเธก", "เธเธดเนเธ"],
+      ["เธเนเธฒเน€เธเนเธ”เธกเธทเธญ (เธ—เธดเธเธเธน)", "เนเธเนเธ"], ["เธเธฅเนเธญเธเธเธฃเธฐเธ”เธฒเธฉเนเธชเนเธเธเธก", "เนเธ"], ["เนเธกเนเธเธเธเธฒเนเธ", "เธเธดเนเธ"],
+      ["เธเนเธฒเธเธฃเธญเธเธเธฒเนเธ", "เนเธเนเธ"], ["เนเธเธเธเธนเธฅเธเธฒเนเธ", "เธเธฅเนเธญเธ"], ["เธเธเธเธฒเนเธ", "เธเธดเนเธฅเธเธฃเธฑเธก"]
     ]
   },
   office: {
-    label: "🖊️ เครื่องเขียน/สำนักงาน",
+    label: "๐–๏ธ เน€เธเธฃเธทเนเธญเธเน€เธเธตเธขเธ/เธชเธณเธเธฑเธเธเธฒเธ",
     items: [
-      ["กระดาษ A4", "รีม"], ["กระดาษ A3", "รีม"], ["ปากกาลูกลื่น", "ด้าม"],
-      ["ดินสอ", "แท่ง"], ["ปากกาเมจิก", "ด้าม"], ["แฟ้มเอกสาร", "อัน"],
-      ["แฟ้มซอง", "อัน"], ["คลิปดำ", "กล่อง"], ["คลิปหนีบกระดาษ", "กล่อง"],
-      ["สติ๊กเกอร์ Post-it", "แพ็ค"], ["เทปใสเล็ก", "ม้วน"], ["กาวแท่ง", "แท่ง"],
-      ["กรรไกร", "อัน"], ["ลวดเย็บกระดาษ", "กล่อง"], ["ตลับหมึก Printer", "ตลับ"],
-      ["หมึกเติม Printer", "ขวด"], ["แฟ้ม Ring binder", "อัน"], ["ปฏิทินตั้งโต๊ะ", "อัน"]
+      ["เธเธฃเธฐเธ”เธฒเธฉ A4", "เธฃเธตเธก"], ["เธเธฃเธฐเธ”เธฒเธฉ A3", "เธฃเธตเธก"], ["เธเธฒเธเธเธฒเธฅเธนเธเธฅเธทเนเธ", "เธ”เนเธฒเธก"],
+      ["เธ”เธดเธเธชเธญ", "เนเธ—เนเธ"], ["เธเธฒเธเธเธฒเน€เธกเธเธดเธ", "เธ”เนเธฒเธก"], ["เนเธเนเธกเน€เธญเธเธชเธฒเธฃ", "เธญเธฑเธ"],
+      ["เนเธเนเธกเธเธญเธ", "เธญเธฑเธ"], ["เธเธฅเธดเธเธ”เธณ", "เธเธฅเนเธญเธ"], ["เธเธฅเธดเธเธซเธเธตเธเธเธฃเธฐเธ”เธฒเธฉ", "เธเธฅเนเธญเธ"],
+      ["เธชเธ•เธดเนเธเน€เธเธญเธฃเน Post-it", "เนเธเนเธ"], ["เน€เธ—เธเนเธชเน€เธฅเนเธ", "เธกเนเธงเธ"], ["เธเธฒเธงเนเธ—เนเธ", "เนเธ—เนเธ"],
+      ["เธเธฃเธฃเนเธเธฃ", "เธญเธฑเธ"], ["เธฅเธงเธ”เน€เธขเนเธเธเธฃเธฐเธ”เธฒเธฉ", "เธเธฅเนเธญเธ"], ["เธ•เธฅเธฑเธเธซเธกเธถเธ Printer", "เธ•เธฅเธฑเธ"],
+      ["เธซเธกเธถเธเน€เธ•เธดเธก Printer", "เธเธงเธ”"], ["เนเธเนเธก Ring binder", "เธญเธฑเธ"], ["เธเธเธดเธ—เธดเธเธ•เธฑเนเธเนเธ•เนเธฐ", "เธญเธฑเธ"]
     ]
   },
   clean: {
-    label: "🧹 วัสดุทำความสะอาด",
+    label: "๐งน เธงเธฑเธชเธ”เธธเธ—เธณเธเธงเธฒเธกเธชเธฐเธญเธฒเธ”",
     items: [
-      ["น้ำยาล้างจาน", "ขวด"], ["น้ำยาถูพื้น", "ขวด"], ["น้ำยาฆ่าเชื้อ", "ขวด"],
-      ["ผงซักฟอก", "ถุง"], ["น้ำยาปรับผ้านุ่ม", "ขวด"], ["สก็อตไบรท์", "แผ่น"],
-      ["ฟองน้ำล้างจาน", "แผ่น"], ["ผ้าไมโครไฟเบอร์", "ผืน"], ["ถุงขยะดำ", "แพ็ค"],
-      ["ถุงขยะสี", "แพ็ค"], ["กระดาษทิชชู ม้วนใหญ่", "ม้วน"], ["กระดาษเช็ดมือ", "แพ็ค"],
-      ["สบู่ล้างมือ", "ขวด"], ["แอลกอฮอล์เจล", "ขวด"], ["แปรงขัดห้องน้ำ", "อัน"],
-      ["น้ำยาขัดสุขภัณฑ์", "ขวด"], ["น้ำหอมปรับอากาศ", "กระป๋อง"]
+      ["เธเนเธณเธขเธฒเธฅเนเธฒเธเธเธฒเธ", "เธเธงเธ”"], ["เธเนเธณเธขเธฒเธ–เธนเธเธทเนเธ", "เธเธงเธ”"], ["เธเนเธณเธขเธฒเธเนเธฒเน€เธเธทเนเธญ", "เธเธงเธ”"],
+      ["เธเธเธเธฑเธเธเธญเธ", "เธ–เธธเธ"], ["เธเนเธณเธขเธฒเธเธฃเธฑเธเธเนเธฒเธเธธเนเธก", "เธเธงเธ”"], ["เธชเธเนเธญเธ•เนเธเธฃเธ—เน", "เนเธเนเธ"],
+      ["เธเธญเธเธเนเธณเธฅเนเธฒเธเธเธฒเธ", "เนเธเนเธ"], ["เธเนเธฒเนเธกเนเธเธฃเนเธเน€เธเธญเธฃเน", "เธเธทเธ"], ["เธ–เธธเธเธเธขเธฐเธ”เธณ", "เนเธเนเธ"],
+      ["เธ–เธธเธเธเธขเธฐเธชเธต", "เนเธเนเธ"], ["เธเธฃเธฐเธ”เธฒเธฉเธ—เธดเธเธเธน เธกเนเธงเธเนเธซเธเน", "เธกเนเธงเธ"], ["เธเธฃเธฐเธ”เธฒเธฉเน€เธเนเธ”เธกเธทเธญ", "เนเธเนเธ"],
+      ["เธชเธเธนเนเธฅเนเธฒเธเธกเธทเธญ", "เธเธงเธ”"], ["เนเธญเธฅเธเธญเธฎเธญเธฅเนเน€เธเธฅ", "เธเธงเธ”"], ["เนเธเธฃเธเธเธฑเธ”เธซเนเธญเธเธเนเธณ", "เธญเธฑเธ"],
+      ["เธเนเธณเธขเธฒเธเธฑเธ”เธชเธธเธเธ เธฑเธ“เธ‘เน", "เธเธงเธ”"], ["เธเนเธณเธซเธญเธกเธเธฃเธฑเธเธญเธฒเธเธฒเธจ", "เธเธฃเธฐเธเนเธญเธ"]
     ]
   },
   roast: {
-    label: "🔥 โรงคั่วกาแฟ",
+    label: "๐”ฅ เนเธฃเธเธเธฑเนเธงเธเธฒเนเธ",
     items: [
-      ["เมล็ดกาแฟดิบ", "กิโลกรัม"], ["ถุงบรรจุเมล็ดกาแฟ", "ใบ"], ["ซิปล็อคกาแฟ", "ใบ"],
-      ["วาล์วระบายแก๊ส", "ชิ้น"], ["ป้ายสินค้า", "แผ่น"], ["กล่องบรรจุภัณฑ์กาแฟ", "ใบ"],
-      ["ถุงอลูมิเนียมฟอยล์", "ใบ"], ["กระป๋องกาแฟ", "ใบ"], ["ซีลฝา", "ชิ้น"],
-      ["ฉลากสินค้า", "ม้วน"], ["น้ำมันหล่อลื่นเครื่อง", "ขวด"], ["ผ้ากรองคั่ว", "แผ่น"]
+      ["เน€เธกเธฅเนเธ”เธเธฒเนเธเธ”เธดเธ", "เธเธดเนเธฅเธเธฃเธฑเธก"], ["เธ–เธธเธเธเธฃเธฃเธเธธเน€เธกเธฅเนเธ”เธเธฒเนเธ", "เนเธ"], ["เธเธดเธเธฅเนเธญเธเธเธฒเนเธ", "เนเธ"],
+      ["เธงเธฒเธฅเนเธงเธฃเธฐเธเธฒเธขเนเธเนเธช", "เธเธดเนเธ"], ["เธเนเธฒเธขเธชเธดเธเธเนเธฒ", "เนเธเนเธ"], ["เธเธฅเนเธญเธเธเธฃเธฃเธเธธเธ เธฑเธ“เธ‘เนเธเธฒเนเธ", "เนเธ"],
+      ["เธ–เธธเธเธญเธฅเธนเธกเธดเน€เธเธตเธขเธกเธเธญเธขเธฅเน", "เนเธ"], ["เธเธฃเธฐเธเนเธญเธเธเธฒเนเธ", "เนเธ"], ["เธเธตเธฅเธเธฒ", "เธเธดเนเธ"],
+      ["เธเธฅเธฒเธเธชเธดเธเธเนเธฒ", "เธกเนเธงเธ"], ["เธเนเธณเธกเธฑเธเธซเธฅเนเธญเธฅเธทเนเธเน€เธเธฃเธทเนเธญเธ", "เธเธงเธ”"], ["เธเนเธฒเธเธฃเธญเธเธเธฑเนเธง", "เนเธเนเธ"]
     ]
   },
   pack: {
-    label: "📦 แพ็คสินค้า/คลังสินค้า",
+    label: "๐“ฆ เนเธเนเธเธชเธดเธเธเนเธฒ/เธเธฅเธฑเธเธชเธดเธเธเนเธฒ",
     items: [
-      ["แอร์บับเบิล (กันกระแทก)", "ม้วน"], ["กล่องพัสดุ เบอร์ S", "ใบ"],
-      ["กล่องพัสดุ เบอร์ M", "ใบ"], ["กล่องพัสดุ เบอร์ L", "ใบ"], ["ซองไปรษณีย์พลาสติก", "ใบ"],
-      ["ซองกันกระแทก", "ใบ"], ["เทปปิดกล่อง", "ม้วน"], ["เทปใสขนาดใหญ่", "ม้วน"],
-      ["ฟิล์มยืดพันพาเลท", "ม้วน"], ["เชือกฟาง", "ม้วน"], ["เคเบิ้ลไทร์", "ถุง"],
-      ["สติ๊กเกอร์ Fragile", "ม้วน"], ["สติ๊กเกอร์ส่งด่วน", "ม้วน"], ["สติ๊กเกอร์โลโก้บริษัท", "ม้วน"],
-      ["เครื่องยิงเทป", "อัน"], ["คัตเตอร์งานคลัง", "อัน"], ["ถุงซิปล็อค", "แพ็ค"],
-      ["ถุงคราฟท์", "แพ็ค"], ["ถุงกระดาษ", "แพ็ค"], ["ถุงพลาสติกใส", "กิโลกรัม"],
-      ["ป้ายแท็กสินค้า", "แพ็ค"], ["เครื่องชั่งสินค้า", "เครื่อง"], ["กระดาษใบปะหน้า", "รีม"],
-      ["หมึกเครื่องปริ้นใบปะหน้า", "ตลับ"]
+      ["เนเธญเธฃเนเธเธฑเธเน€เธเธดเธฅ (เธเธฑเธเธเธฃเธฐเนเธ—เธ)", "เธกเนเธงเธ"], ["เธเธฅเนเธญเธเธเธฑเธชเธ”เธธ เน€เธเธญเธฃเน S", "เนเธ"],
+      ["เธเธฅเนเธญเธเธเธฑเธชเธ”เธธ เน€เธเธญเธฃเน M", "เนเธ"], ["เธเธฅเนเธญเธเธเธฑเธชเธ”เธธ เน€เธเธญเธฃเน L", "เนเธ"], ["เธเธญเธเนเธเธฃเธฉเธ“เธตเธขเนเธเธฅเธฒเธชเธ•เธดเธ", "เนเธ"],
+      ["เธเธญเธเธเธฑเธเธเธฃเธฐเนเธ—เธ", "เนเธ"], ["เน€เธ—เธเธเธดเธ”เธเธฅเนเธญเธ", "เธกเนเธงเธ"], ["เน€เธ—เธเนเธชเธเธเธฒเธ”เนเธซเธเน", "เธกเนเธงเธ"],
+      ["เธเธดเธฅเนเธกเธขเธทเธ”เธเธฑเธเธเธฒเน€เธฅเธ—", "เธกเนเธงเธ"], ["เน€เธเธทเธญเธเธเธฒเธ", "เธกเนเธงเธ"], ["เน€เธเน€เธเธดเนเธฅเนเธ—เธฃเน", "เธ–เธธเธ"],
+      ["เธชเธ•เธดเนเธเน€เธเธญเธฃเน Fragile", "เธกเนเธงเธ"], ["เธชเธ•เธดเนเธเน€เธเธญเธฃเนเธชเนเธเธ”เนเธงเธ", "เธกเนเธงเธ"], ["เธชเธ•เธดเนเธเน€เธเธญเธฃเนเนเธฅเนเธเนเธเธฃเธดเธฉเธฑเธ—", "เธกเนเธงเธ"],
+      ["เน€เธเธฃเธทเนเธญเธเธขเธดเธเน€เธ—เธ", "เธญเธฑเธ"], ["เธเธฑเธ•เน€เธ•เธญเธฃเนเธเธฒเธเธเธฅเธฑเธ", "เธญเธฑเธ"], ["เธ–เธธเธเธเธดเธเธฅเนเธญเธ", "เนเธเนเธ"],
+      ["เธ–เธธเธเธเธฃเธฒเธเธ—เน", "เนเธเนเธ"], ["เธ–เธธเธเธเธฃเธฐเธ”เธฒเธฉ", "เนเธเนเธ"], ["เธ–เธธเธเธเธฅเธฒเธชเธ•เธดเธเนเธช", "เธเธดเนเธฅเธเธฃเธฑเธก"],
+      ["เธเนเธฒเธขเนเธ—เนเธเธชเธดเธเธเนเธฒ", "เนเธเนเธ"], ["เน€เธเธฃเธทเนเธญเธเธเธฑเนเธเธชเธดเธเธเนเธฒ", "เน€เธเธฃเธทเนเธญเธ"], ["เธเธฃเธฐเธ”เธฒเธฉเนเธเธเธฐเธซเธเนเธฒ", "เธฃเธตเธก"],
+      ["เธซเธกเธถเธเน€เธเธฃเธทเนเธญเธเธเธฃเธดเนเธเนเธเธเธฐเธซเธเนเธฒ", "เธ•เธฅเธฑเธ"]
     ]
   },
   general: {
-    label: "🔧 อุปกรณ์ทั่วไปองค์กร",
+    label: "๐”ง เธญเธธเธเธเธฃเธ“เนเธ—เธฑเนเธงเนเธเธญเธเธเนเธเธฃ",
     items: [
-      ["หลอดไฟ", "หลอด"], ["ถ่าน AA", "ก้อน"], ["ถ่าน AAA", "ก้อน"], ["ปลั๊กไฟ", "อัน"],
-      ["สายไฟต่อพ่วง", "เส้น"], ["พัดลม", "เครื่อง"], ["อุปกรณ์ปฐมพยาบาล", "ชุด"],
-      ["หน้ากากอนามัย", "กล่อง"], ["หมวกคลุมผม", "แพ็ค"], ["ผ้ากันเปื้อน", "ตัว"],
-      ["รองเท้าบูท", "คู่"], ["ถุงมือยาง", "กล่อง"], ["ไม้กวาด", "อัน"], ["ที่โกยผง", "อัน"],
-      ["ไม้ม็อบ", "อัน"]
+      ["เธซเธฅเธญเธ”เนเธ", "เธซเธฅเธญเธ”"], ["เธ–เนเธฒเธ AA", "เธเนเธญเธ"], ["เธ–เนเธฒเธ AAA", "เธเนเธญเธ"], ["เธเธฅเธฑเนเธเนเธ", "เธญเธฑเธ"],
+      ["เธชเธฒเธขเนเธเธ•เนเธญเธเนเธงเธ", "เน€เธชเนเธ"], ["เธเธฑเธ”เธฅเธก", "เน€เธเธฃเธทเนเธญเธ"], ["เธญเธธเธเธเธฃเธ“เนเธเธเธกเธเธขเธฒเธเธฒเธฅ", "เธเธธเธ”"],
+      ["เธซเธเนเธฒเธเธฒเธเธญเธเธฒเธกเธฑเธข", "เธเธฅเนเธญเธ"], ["เธซเธกเธงเธเธเธฅเธธเธกเธเธก", "เนเธเนเธ"], ["เธเนเธฒเธเธฑเธเน€เธเธทเนเธญเธ", "เธ•เธฑเธง"],
+      ["เธฃเธญเธเน€เธ—เนเธฒเธเธนเธ—", "เธเธนเน"], ["เธ–เธธเธเธกเธทเธญเธขเธฒเธ", "เธเธฅเนเธญเธ"], ["เนเธกเนเธเธงเธฒเธ”", "เธญเธฑเธ"], ["เธ—เธตเนเนเธเธขเธเธ", "เธญเธฑเธ"],
+      ["เนเธกเนเธกเนเธญเธ", "เธญเธฑเธ"]
     ]
   }
 };
 
 const BRANCHES_INIT = [
-  { id: "HQ", name: "สำนักงานใหญ่", nameEn: "Headquarters", icon: "🏢", color: "#166534" },
-  { id: "CPK", name: "สาขาช้างเผือก", nameEn: "Chang Phueak", icon: "🌿", color: "#15803D" },
-  { id: "MHD", name: "สาขามหิดล", nameEn: "Mahidol", icon: "🎓", color: "#16A34A" },
-  { id: "PPG", name: "สาขาป่าแพ่ง", nameEn: "Pa Phaeng", icon: "🌳", color: "#22C55E" },
-  { id: "TD", name: "สาขาทับเดื่อ", nameEn: "Thap Duea", icon: "☕", color: "#4ADE80" },
-  { id: "RTK", name: "สาขาราติก้า", nameEn: "Ratica", icon: "🫘", color: "#0f766e" }
+  { id: "HQ", name: "เธชเธณเธเธฑเธเธเธฒเธเนเธซเธเน", nameEn: "Headquarters", icon: "๐ข", color: "#166534" },
+  { id: "CPK", name: "เธชเธฒเธเธฒเธเนเธฒเธเน€เธเธทเธญเธ", nameEn: "Chang Phueak", icon: "๐ฟ", color: "#15803D" },
+  { id: "MHD", name: "เธชเธฒเธเธฒเธกเธซเธดเธ”เธฅ", nameEn: "Mahidol", icon: "๐“", color: "#16A34A" },
+  { id: "PPG", name: "เธชเธฒเธเธฒเธเนเธฒเนเธเนเธ", nameEn: "Pa Phaeng", icon: "๐ณ", color: "#22C55E" },
+  { id: "TD", name: "เธชเธฒเธเธฒเธ—เธฑเธเน€เธ”เธทเนเธญ", nameEn: "Thap Duea", icon: "โ•", color: "#4ADE80" },
+  { id: "RTK", name: "เธชเธฒเธเธฒเธฃเธฒเธ•เธดเธเนเธฒ", nameEn: "Ratica", icon: "๐ซ", color: "#0f766e" }
 ];
 
-const MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+const MONTHS = ["เธก.เธ.", "เธ.เธ.", "เธกเธต.เธ.", "เน€เธก.เธข.", "เธ.เธ.", "เธกเธด.เธข.", "เธ.เธ.", "เธช.เธ.", "เธ.เธข.", "เธ•.เธ.", "เธ.เธข.", "เธ.เธ."];
 
 const emptyBranches = () => BRANCHES_INIT.map(b => ({
   ...b,
@@ -144,10 +145,10 @@ const groupTopByMonth = (entries, selector) => {
 };
 
 const getWasteItems = entry => [
-  { name: "ขยะทั่วไป", qty: entry.waste?.general || 0, unit: "กก." },
-  { name: "ขยะรีไซเคิล", qty: entry.waste?.recycle || 0, unit: "กก." },
-  { name: "ขยะอินทรีย์", qty: entry.waste?.organic || 0, unit: "กก." },
-  { name: "ขยะอันตราย/ฝังกลบ", qty: entry.waste?.hazard || 0, unit: "กก." }
+  { name: "เธเธขเธฐเธ—เธฑเนเธงเนเธ", qty: entry.waste?.general || 0, unit: "เธเธ." },
+  { name: "เธเธขเธฐเธฃเธตเนเธเน€เธเธดเธฅ", qty: entry.waste?.recycle || 0, unit: "เธเธ." },
+  { name: "เธเธขเธฐเธญเธดเธเธ—เธฃเธตเธขเน", qty: entry.waste?.organic || 0, unit: "เธเธ." },
+  { name: "เธเธขเธฐเธญเธฑเธเธ•เธฃเธฒเธข/เธเธฑเธเธเธฅเธ", qty: entry.waste?.hazard || 0, unit: "เธเธ." }
 ];
 
 const dashboardStorageKey = userId => `hillkoff-dashboard-state:${userId || "guest"}`;
@@ -224,76 +225,76 @@ ${projectWhitepaper}
 const REPORT_DETAILS = {
   esg: {
     title: "Executive ESG Report",
-    icon: "📊",
-    basis: "สรุปผลการดำเนินงาน ESG ประจำเดือน พร้อม KPI, Carbon Summary, Zero Waste Rate และ Carbon Credit เพื่อใช้รายงานผู้บริหาร",
+    icon: "๐“",
+    basis: "เธชเธฃเธธเธเธเธฅเธเธฒเธฃเธ”เธณเน€เธเธดเธเธเธฒเธ ESG เธเธฃเธฐเธเธณเน€เธ”เธทเธญเธ เธเธฃเนเธญเธก KPI, Carbon Summary, Zero Waste Rate เนเธฅเธฐ Carbon Credit เน€เธเธทเนเธญเนเธเนเธฃเธฒเธขเธเธฒเธเธเธนเนเธเธฃเธดเธซเธฒเธฃ",
     formulas: [
-      "Carbon รวม = CO2 ไฟฟ้า + CO2 น้ำ + CO2 เชื้อเพลิง",
-      "CO2 ไฟฟ้า = kWh x 0.4716 / 1000",
-      "Zero Waste Rate = (ขยะรีไซเคิล + ขยะอินทรีย์) / ขยะทั้งหมด x 100",
-      "Sustainability Score = 50 + (Recycle Rate x 0.5) - (CO2 เฉลี่ยต่อรายการ x 10)"
+      "Carbon เธฃเธงเธก = CO2 เนเธเธเนเธฒ + CO2 เธเนเธณ + CO2 เน€เธเธทเนเธญเน€เธเธฅเธดเธ",
+      "CO2 เนเธเธเนเธฒ = kWh x 0.4716 / 1000",
+      "Zero Waste Rate = (เธเธขเธฐเธฃเธตเนเธเน€เธเธดเธฅ + เธเธขเธฐเธญเธดเธเธ—เธฃเธตเธขเน) / เธเธขเธฐเธ—เธฑเนเธเธซเธกเธ” x 100",
+      "Sustainability Score = 50 + (Recycle Rate x 0.5) - (CO2 เน€เธเธฅเธตเนเธขเธ•เนเธญเธฃเธฒเธขเธเธฒเธฃ x 10)"
     ],
     sources: [
-      "GHG Protocol Corporate Standard สำหรับโครงสร้างการจัดเก็บและรายงานก๊าซเรือนกระจก",
-      "Emission factor ไฟฟ้า 0.4716 kgCO2e/kWh ใช้เป็นค่าตั้งต้นของระบบ และควรแทนด้วยค่าประกาศล่าสุดเมื่อใช้งานจริง",
-      "หลัก Zero Waste ใช้วัดสัดส่วนขยะที่ถูกนำกลับไปใช้ประโยชน์"
+      "GHG Protocol Corporate Standard เธชเธณเธซเธฃเธฑเธเนเธเธฃเธเธชเธฃเนเธฒเธเธเธฒเธฃเธเธฑเธ”เน€เธเนเธเนเธฅเธฐเธฃเธฒเธขเธเธฒเธเธเนเธฒเธเน€เธฃเธทเธญเธเธเธฃเธฐเธเธ",
+      "Emission factor เนเธเธเนเธฒ 0.4716 kgCO2e/kWh เนเธเนเน€เธเนเธเธเนเธฒเธ•เธฑเนเธเธ•เนเธเธเธญเธเธฃเธฐเธเธ เนเธฅเธฐเธเธงเธฃเนเธ—เธเธ”เนเธงเธขเธเนเธฒเธเธฃเธฐเธเธฒเธจเธฅเนเธฒเธชเธธเธ”เน€เธกเธทเนเธญเนเธเนเธเธฒเธเธเธฃเธดเธ",
+      "เธซเธฅเธฑเธ Zero Waste เนเธเนเธงเธฑเธ”เธชเธฑเธ”เธชเนเธงเธเธเธขเธฐเธ—เธตเนเธ–เธนเธเธเธณเธเธฅเธฑเธเนเธเนเธเนเธเธฃเธฐเนเธขเธเธเน"
     ]
   },
   carbon: {
     title: "Carbon Emission Report",
-    icon: "🌍",
-    basis: "รายงาน Carbon Footprint รายสาขา แยก Scope 1, Scope 2 และข้อมูลสนับสนุน Scope 3",
+    icon: "๐",
+    basis: "เธฃเธฒเธขเธเธฒเธ Carbon Footprint เธฃเธฒเธขเธชเธฒเธเธฒ เนเธขเธ Scope 1, Scope 2 เนเธฅเธฐเธเนเธญเธกเธนเธฅเธชเธเธฑเธเธชเธเธธเธ Scope 3",
     formulas: [
-      "Scope 1 เชื้อเพลิง = ปริมาณเชื้อเพลิง x emission factor / 1000",
+      "Scope 1 เน€เธเธทเนเธญเน€เธเธฅเธดเธ = เธเธฃเธดเธกเธฒเธ“เน€เธเธทเนเธญเน€เธเธฅเธดเธ x emission factor / 1000",
       "Diesel = 2.67 kgCO2e/L, Gasoline = 2.31 kgCO2e/L, LPG = 2.98 kgCO2e/kg, CNG = 2.15 kgCO2e/kg",
-      "Scope 2 ไฟฟ้า = kWh x 0.4716 / 1000",
-      "น้ำ = m3 x 0.00149"
+      "Scope 2 เนเธเธเนเธฒ = kWh x 0.4716 / 1000",
+      "เธเนเธณ = m3 x 0.00149"
     ],
     sources: [
-      "GHG Protocol ใช้แบ่ง Scope 1, Scope 2 และ Scope 3",
-      "IPCC emission factor approach สำหรับ activity data ด้านเชื้อเพลิง",
-      "ข้อมูลบิลและไฟล์นำเข้าเป็น activity data หลักของการคำนวณ"
+      "GHG Protocol เนเธเนเนเธเนเธ Scope 1, Scope 2 เนเธฅเธฐ Scope 3",
+      "IPCC emission factor approach เธชเธณเธซเธฃเธฑเธ activity data เธ”เนเธฒเธเน€เธเธทเนเธญเน€เธเธฅเธดเธ",
+      "เธเนเธญเธกเธนเธฅเธเธดเธฅเนเธฅเธฐเนเธเธฅเนเธเธณเน€เธเนเธฒเน€เธเนเธ activity data เธซเธฅเธฑเธเธเธญเธเธเธฒเธฃเธเธณเธเธงเธ“"
     ]
   },
   tcfd: {
     title: "TCFD Disclosure Report",
-    icon: "🏛️",
-    basis: "รายงานตาม 4 เสาหลักของ TCFD: Governance, Strategy, Risk Management, Metrics & Targets",
+    icon: "๐๏ธ",
+    basis: "เธฃเธฒเธขเธเธฒเธเธ•เธฒเธก 4 เน€เธชเธฒเธซเธฅเธฑเธเธเธญเธ TCFD: Governance, Strategy, Risk Management, Metrics & Targets",
     formulas: [
-      "Metrics ใช้ Carbon รวม, พลังงานรวม, น้ำรวม, Zero Waste Rate และแนวโน้มรายเดือน",
-      "Risk indicator ประเมินจากสาขาที่ Carbon สูงหรือ Sustainability Score ต่ำกว่าค่าเฉลี่ย",
-      "Targets เทียบผลรายเดือนกับ baseline หรือเดือนก่อนหน้า"
+      "Metrics เนเธเน Carbon เธฃเธงเธก, เธเธฅเธฑเธเธเธฒเธเธฃเธงเธก, เธเนเธณเธฃเธงเธก, Zero Waste Rate เนเธฅเธฐเนเธเธงเนเธเนเธกเธฃเธฒเธขเน€เธ”เธทเธญเธ",
+      "Risk indicator เธเธฃเธฐเน€เธกเธดเธเธเธฒเธเธชเธฒเธเธฒเธ—เธตเน Carbon เธชเธนเธเธซเธฃเธทเธญ Sustainability Score เธ•เนเธณเธเธงเนเธฒเธเนเธฒเน€เธเธฅเธตเนเธข",
+      "Targets เน€เธ—เธตเธขเธเธเธฅเธฃเธฒเธขเน€เธ”เธทเธญเธเธเธฑเธ baseline เธซเธฃเธทเธญเน€เธ”เธทเธญเธเธเนเธญเธเธซเธเนเธฒ"
     ],
     sources: [
       "TCFD Recommendations: Governance, Strategy, Risk Management, Metrics and Targets",
-      "ISSB IFRS S2 ใช้แนวคิด climate-related disclosures ที่สอดคล้องกับ TCFD"
+      "ISSB IFRS S2 เนเธเนเนเธเธงเธเธดเธ” climate-related disclosures เธ—เธตเนเธชเธญเธ”เธเธฅเนเธญเธเธเธฑเธ TCFD"
     ]
   },
   monthly: {
     title: "Monthly Sustainability Report",
-    icon: "📅",
-    basis: "รายงานสรุปรายเดือน ค่าไฟ ค่าน้ำ เชื้อเพลิง ขยะ และแนวโน้ม Carbon",
+    icon: "๐“…",
+    basis: "เธฃเธฒเธขเธเธฒเธเธชเธฃเธธเธเธฃเธฒเธขเน€เธ”เธทเธญเธ เธเนเธฒเนเธ เธเนเธฒเธเนเธณ เน€เธเธทเนเธญเน€เธเธฅเธดเธ เธเธขเธฐ เนเธฅเธฐเนเธเธงเนเธเนเธก Carbon",
     formulas: [
-      "Carbon เดือน = ผลรวม Carbon ของทุกสาขาในเดือนนั้น",
-      "MoM Change = (เดือนปัจจุบัน - เดือนก่อนหน้า) / เดือนก่อนหน้า x 100",
-      "Intensity ต่อรายการ = Carbon รวม / จำนวนรายการบันทึก"
+      "Carbon เน€เธ”เธทเธญเธ = เธเธฅเธฃเธงเธก Carbon เธเธญเธเธ—เธธเธเธชเธฒเธเธฒเนเธเน€เธ”เธทเธญเธเธเธฑเนเธ",
+      "MoM Change = (เน€เธ”เธทเธญเธเธเธฑเธเธเธธเธเธฑเธ - เน€เธ”เธทเธญเธเธเนเธญเธเธซเธเนเธฒ) / เน€เธ”เธทเธญเธเธเนเธญเธเธซเธเนเธฒ x 100",
+      "Intensity เธ•เนเธญเธฃเธฒเธขเธเธฒเธฃ = Carbon เธฃเธงเธก / เธเธณเธเธงเธเธฃเธฒเธขเธเธฒเธฃเธเธฑเธเธ—เธถเธ"
     ],
     sources: [
-      "KPI dashboard ด้าน energy, water, waste และ GHG inventory",
-      "ใช้ข้อมูลจากบิล ไฟล์ PDF/Excel/CSV และรายการ manual input เป็น activity data"
+      "KPI dashboard เธ”เนเธฒเธ energy, water, waste เนเธฅเธฐ GHG inventory",
+      "เนเธเนเธเนเธญเธกเธนเธฅเธเธฒเธเธเธดเธฅ เนเธเธฅเน PDF/Excel/CSV เนเธฅเธฐเธฃเธฒเธขเธเธฒเธฃ manual input เน€เธเนเธ activity data"
     ]
   },
   branch: {
     title: "Branch Comparison Report",
-    icon: "🏢",
-    basis: "เปรียบเทียบประสิทธิภาพการใช้ทรัพยากรทุกสาขาด้วย Carbon, พลังงาน, ขยะ และ Sustainability Score",
+    icon: "๐ข",
+    basis: "เน€เธเธฃเธตเธขเธเน€เธ—เธตเธขเธเธเธฃเธฐเธชเธดเธ—เธเธดเธ เธฒเธเธเธฒเธฃเนเธเนเธ—เธฃเธฑเธเธขเธฒเธเธฃเธ—เธธเธเธชเธฒเธเธฒเธ”เนเธงเธข Carbon, เธเธฅเธฑเธเธเธฒเธ, เธเธขเธฐ เนเธฅเธฐ Sustainability Score",
     formulas: [
-      "Ranking Carbon ต่ำสุด = เรียงสาขาจาก CO2 น้อยไปมาก",
-      "Ranking Energy = เรียงจาก kWh น้อยไปมาก",
-      "Score = max(1, min(100, 50 + Recycle Rate x 0.5 - CO2 เฉลี่ยต่อรายการ x 10))"
+      "Ranking Carbon เธ•เนเธณเธชเธธเธ” = เน€เธฃเธตเธขเธเธชเธฒเธเธฒเธเธฒเธ CO2 เธเนเธญเธขเนเธเธกเธฒเธ",
+      "Ranking Energy = เน€เธฃเธตเธขเธเธเธฒเธ kWh เธเนเธญเธขเนเธเธกเธฒเธ",
+      "Score = max(1, min(100, 50 + Recycle Rate x 0.5 - CO2 เน€เธเธฅเธตเนเธขเธ•เนเธญเธฃเธฒเธขเธเธฒเธฃ x 10))"
     ],
     sources: [
-      "หลัก internal benchmarking ภายในองค์กร",
-      "GHG Protocol แนะนำให้เทียบข้อมูลภายใต้ organizational boundary และ operational boundary เดียวกัน"
+      "เธซเธฅเธฑเธ internal benchmarking เธ เธฒเธขเนเธเธญเธเธเนเธเธฃ",
+      "GHG Protocol เนเธเธฐเธเธณเนเธซเนเน€เธ—เธตเธขเธเธเนเธญเธกเธนเธฅเธ เธฒเธขเนเธ•เน organizational boundary เนเธฅเธฐ operational boundary เน€เธ”เธตเธขเธงเธเธฑเธ"
     ]
   }
 };
@@ -306,11 +307,11 @@ const WHITE_PAPER_HTML = `<!doctype html>
 <html lang="th"><head><meta charset="utf-8"><title>Hillkoff Zero Waste Analytics White Paper</title>
 <style>body{font-family:Arial,sans-serif;line-height:1.7;color:#14532d;max-width:860px;margin:40px auto;padding:0 24px}h1,h2{color:#166534}section{border-top:1px solid #d1fae5;padding-top:18px;margin-top:22px}.kpi{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px;margin:10px 0}</style></head>
 <body><h1>Hillkoff Zero Waste Analytics</h1>
-<p>White paper ฉบับย่อสำหรับอธิบายแนวคิด ระบบ และวิธีใช้ข้อมูลในโครงการ Zero Waste & Sustainability Dashboard</p>
-<section><h2>1. แนวคิดโครงการ</h2><p>ระบบนี้ทำหน้าที่รวมข้อมูลการใช้ทรัพยากรของแต่ละสาขา ได้แก่ ไฟฟ้า น้ำ เชื้อเพลิง ขยะ และการเบิกใช้วัสดุ เพื่อเปลี่ยนข้อมูลรายเดือนให้เป็นภาพรวมด้าน ESG, Carbon Emission และ Zero Waste ที่ตรวจสอบย้อนหลังได้</p></section>
-<section><h2>2. หลักการคำนวณ</h2><div class="kpi">ไฟฟ้า: kWh x 0.4716 / 1000 = tCO2e</div><div class="kpi">น้ำ: m3 x 0.00149 = tCO2e</div><div class="kpi">เชื้อเพลิง: ปริมาณ x emission factor / 1000 = tCO2e</div><p>รายการเบิกใช้วัสดุถูกเก็บเป็น activity data เพื่อดูพฤติกรรมการใช้วัสดุและหลักฐานประกอบ ไม่ถูกรวมเป็นคาร์บอนโดยตรงจนกว่าจะมี emission factor เฉพาะรายการที่ผ่านการรับรอง</p></section>
-<section><h2>3. ธรรมาภิบาลข้อมูล</h2><p>ข้อมูลทุกครั้งที่บันทึกจะมีสาขา เดือน ผู้ใช้ เอกสารอ้างอิง และเวลา เพื่อให้ตรวจสอบย้อนกลับได้ ผู้ดูแลระบบที่กำหนดเท่านั้นสามารถรีเซ็ตข้อมูลที่ผิดหรือรีเซ็ตข้อมูลทั้งหมดได้</p></section>
-<section><h2>4. เป้าหมายการใช้งาน</h2><p>ใช้ dashboard เป็นเครื่องมือทำงานประจำเดือนสำหรับลดต้นทุน ลดของเสีย เตรียมรายงานผู้บริหาร และต่อยอดไปสู่รายงาน Carbon Footprint, TCFD และ Net Zero Roadmap</p></section></body></html>`;
+<p>White paper เธเธเธฑเธเธขเนเธญเธชเธณเธซเธฃเธฑเธเธญเธเธดเธเธฒเธขเนเธเธงเธเธดเธ” เธฃเธฐเธเธ เนเธฅเธฐเธงเธดเธเธตเนเธเนเธเนเธญเธกเธนเธฅเนเธเนเธเธฃเธเธเธฒเธฃ Zero Waste & Sustainability Dashboard</p>
+<section><h2>1. เนเธเธงเธเธดเธ”เนเธเธฃเธเธเธฒเธฃ</h2><p>เธฃเธฐเธเธเธเธตเนเธ—เธณเธซเธเนเธฒเธ—เธตเนเธฃเธงเธกเธเนเธญเธกเธนเธฅเธเธฒเธฃเนเธเนเธ—เธฃเธฑเธเธขเธฒเธเธฃเธเธญเธเนเธ•เนเธฅเธฐเธชเธฒเธเธฒ เนเธ”เนเนเธเน เนเธเธเนเธฒ เธเนเธณ เน€เธเธทเนเธญเน€เธเธฅเธดเธ เธเธขเธฐ เนเธฅเธฐเธเธฒเธฃเน€เธเธดเธเนเธเนเธงเธฑเธชเธ”เธธ เน€เธเธทเนเธญเน€เธเธฅเธตเนเธขเธเธเนเธญเธกเธนเธฅเธฃเธฒเธขเน€เธ”เธทเธญเธเนเธซเนเน€เธเนเธเธ เธฒเธเธฃเธงเธกเธ”เนเธฒเธ ESG, Carbon Emission เนเธฅเธฐ Zero Waste เธ—เธตเนเธ•เธฃเธงเธเธชเธญเธเธขเนเธญเธเธซเธฅเธฑเธเนเธ”เน</p></section>
+<section><h2>2. เธซเธฅเธฑเธเธเธฒเธฃเธเธณเธเธงเธ“</h2><div class="kpi">เนเธเธเนเธฒ: kWh x 0.4716 / 1000 = tCO2e</div><div class="kpi">เธเนเธณ: m3 x 0.00149 = tCO2e</div><div class="kpi">เน€เธเธทเนเธญเน€เธเธฅเธดเธ: เธเธฃเธดเธกเธฒเธ“ x emission factor / 1000 = tCO2e</div><p>เธฃเธฒเธขเธเธฒเธฃเน€เธเธดเธเนเธเนเธงเธฑเธชเธ”เธธเธ–เธนเธเน€เธเนเธเน€เธเนเธ activity data เน€เธเธทเนเธญเธ”เธนเธเธคเธ•เธดเธเธฃเธฃเธกเธเธฒเธฃเนเธเนเธงเธฑเธชเธ”เธธเนเธฅเธฐเธซเธฅเธฑเธเธเธฒเธเธเธฃเธฐเธเธญเธ เนเธกเนเธ–เธนเธเธฃเธงเธกเน€เธเนเธเธเธฒเธฃเนเธเธญเธเนเธ”เธขเธ•เธฃเธเธเธเธเธงเนเธฒเธเธฐเธกเธต emission factor เน€เธเธเธฒเธฐเธฃเธฒเธขเธเธฒเธฃเธ—เธตเนเธเนเธฒเธเธเธฒเธฃเธฃเธฑเธเธฃเธญเธ</p></section>
+<section><h2>3. เธเธฃเธฃเธกเธฒเธ เธดเธเธฒเธฅเธเนเธญเธกเธนเธฅ</h2><p>เธเนเธญเธกเธนเธฅเธ—เธธเธเธเธฃเธฑเนเธเธ—เธตเนเธเธฑเธเธ—เธถเธเธเธฐเธกเธตเธชเธฒเธเธฒ เน€เธ”เธทเธญเธ เธเธนเนเนเธเน เน€เธญเธเธชเธฒเธฃเธญเนเธฒเธเธญเธดเธ เนเธฅเธฐเน€เธงเธฅเธฒ เน€เธเธทเนเธญเนเธซเนเธ•เธฃเธงเธเธชเธญเธเธขเนเธญเธเธเธฅเธฑเธเนเธ”เน เธเธนเนเธ”เธนเนเธฅเธฃเธฐเธเธเธ—เธตเนเธเธณเธซเธเธ”เน€เธ—เนเธฒเธเธฑเนเธเธชเธฒเธกเธฒเธฃเธ–เธฃเธตเน€เธเนเธ•เธเนเธญเธกเธนเธฅเธ—เธตเนเธเธดเธ”เธซเธฃเธทเธญเธฃเธตเน€เธเนเธ•เธเนเธญเธกเธนเธฅเธ—เธฑเนเธเธซเธกเธ”เนเธ”เน</p></section>
+<section><h2>4. เน€เธเนเธฒเธซเธกเธฒเธขเธเธฒเธฃเนเธเนเธเธฒเธ</h2><p>เนเธเน dashboard เน€เธเนเธเน€เธเธฃเธทเนเธญเธเธกเธทเธญเธ—เธณเธเธฒเธเธเธฃเธฐเธเธณเน€เธ”เธทเธญเธเธชเธณเธซเธฃเธฑเธเธฅเธ”เธ•เนเธเธ—เธธเธ เธฅเธ”เธเธญเธเน€เธชเธตเธข เน€เธ•เธฃเธตเธขเธกเธฃเธฒเธขเธเธฒเธเธเธนเนเธเธฃเธดเธซเธฒเธฃ เนเธฅเธฐเธ•เนเธญเธขเธญเธ”เนเธเธชเธนเนเธฃเธฒเธขเธเธฒเธ Carbon Footprint, TCFD เนเธฅเธฐ Net Zero Roadmap</p></section></body></html>`;
 
 function simulateFileExtraction(fileName, branchId) {
   const ext = fileName.split(".").pop().toLowerCase();
@@ -320,9 +321,9 @@ function simulateFileExtraction(fileName, branchId) {
     return Math.round((x - Math.floor(x)) * (max - min) + min);
   };
   const presets = {
-    pdf: [800, 3500, 20, 120, 50, 400, 10, 80, 5, 40, 5, 30, 0, 10, 3, 12, "ข้อมูลบิลค่าสาธารณูปโภค"],
-    xlsx: [1000, 5000, 30, 200, 100, 600, 20, 100, 15, 60, 10, 50, 0, 15, 8, 25, "ข้อมูลจากตาราง Excel"],
-    csv: [600, 2800, 15, 90, 30, 300, 8, 60, 4, 35, 3, 25, 0, 8, 2, 10, "ข้อมูลจากไฟล์ CSV"]
+    pdf: [800, 3500, 20, 120, 50, 400, 10, 80, 5, 40, 5, 30, 0, 10, 3, 12, "เธเนเธญเธกเธนเธฅเธเธดเธฅเธเนเธฒเธชเธฒเธเธฒเธฃเธ“เธนเธเนเธ เธ"],
+    xlsx: [1000, 5000, 30, 200, 100, 600, 20, 100, 15, 60, 10, 50, 0, 15, 8, 25, "เธเนเธญเธกเธนเธฅเธเธฒเธเธ•เธฒเธฃเธฒเธ Excel"],
+    csv: [600, 2800, 15, 90, 30, 300, 8, 60, 4, 35, 3, 25, 0, 8, 2, 10, "เธเนเธญเธกเธนเธฅเธเธฒเธเนเธเธฅเน CSV"]
   };
   const p = presets[ext] || presets.csv;
   return {
@@ -413,7 +414,7 @@ function PageHeader({ title, sub }) {
     <div className="page-head">
       <div className="brand-row">
         <div className="brand-left">
-          <div className="brand-icon">☕</div>
+          <div className="brand-icon">โ•</div>
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Hillkoff</div>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,.75)" }}>Zero Waste Analytics</div>
@@ -463,8 +464,8 @@ function DonutChart({ slices, labels }) {
       <svg width={120} height={120}>
         {paths}
         <circle cx={cx} cy={cy} r={28} fill="white" />
-        <text x={cx} y={cy - 4} textAnchor="middle" fontSize="9" fill="#6b7280">tCO₂e</text>
-        <text x={cx} y={cy + 9} textAnchor="middle" fontSize="10" fontWeight="700" fill="#14532d">{total > 0 ? total.toFixed(2) : "—"}</text>
+        <text x={cx} y={cy - 4} textAnchor="middle" fontSize="9" fill="#6b7280">tCOโe</text>
+        <text x={cx} y={cy + 9} textAnchor="middle" fontSize="10" fontWeight="700" fill="#14532d">{total > 0 ? total.toFixed(2) : "โ€”"}</text>
       </svg>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {labels.map((l, i) => (
@@ -479,7 +480,7 @@ function DonutChart({ slices, labels }) {
 }
 
 function RadarChart({ branches }) {
-  const axes = ["Score", "Efficiency", "Carbon↓", "ไฟ↓", "น้ำ↓"];
+  const axes = ["Score", "Efficiency", "Carbonโ“", "เนเธโ“", "เธเนเธณโ“"];
   const cx = 100;
   const cy = 100;
   const r = 70;
@@ -529,14 +530,14 @@ function BranchCard({ b, onClick }) {
         <span style={{ width: 8, height: 8, borderRadius: "50%", background: b.hasData ? "#22c55e" : "#86efac", boxShadow: b.hasData ? "0 0 0 3px rgba(34,197,94,.2)" : "0 0 0 3px rgba(134,239,172,.2)" }} />
       </div>
       <div style={{ fontSize: 12, fontWeight: 700, color: "#14532d" }}>{b.name}</div>
-      <div style={{ fontSize: 10, color: "#6b7280" }}>{b.nameEn} · {b.id}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: b.hasData ? "#166534" : "#6b7280", margin: "6px 0 2px" }}>{b.hasData ? b.co2 : "—"}</div>
-      <div style={{ fontSize: 9, color: "#6b7280" }}>{b.hasData ? "tCO₂e" : "ยังไม่มีข้อมูล"}</div>
+      <div style={{ fontSize: 10, color: "#6b7280" }}>{b.nameEn} ยท {b.id}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: b.hasData ? "#166534" : "#6b7280", margin: "6px 0 2px" }}>{b.hasData ? b.co2 : "โ€”"}</div>
+      <div style={{ fontSize: 9, color: "#6b7280" }}>{b.hasData ? "tCOโe" : "เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅ"}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
         <div style={{ flex: 1, height: 4, background: "#dcfce7", borderRadius: 4, overflow: "hidden" }}>
           <div style={{ height: "100%", borderRadius: 4, background: "linear-gradient(90deg,#16a34a,#22c55e)", width: `${b.score}%`, transition: "width 1s ease" }} />
         </div>
-        <span style={{ fontSize: 10, fontWeight: 700, color: b.hasData ? "#15803d" : "#6b7280" }}>{b.hasData ? b.score : "—"}</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: b.hasData ? "#15803d" : "#6b7280" }}>{b.hasData ? b.score : "โ€”"}</span>
       </div>
     </button>
   );
@@ -547,30 +548,30 @@ function BranchModal({ b, onClose, onGoUpload }) {
   const wTotal = b.waste.general + b.waste.recycle + b.waste.organic + b.waste.hazard;
   const rr = wTotal > 0 ? (((b.waste.recycle + b.waste.organic) / wTotal) * 100).toFixed(1) : "-";
   const rows = [
-    ["Carbon Emission", `${b.co2} tCO₂e`],
+    ["Carbon Emission", `${b.co2} tCOโe`],
     ["Sustainability Score", `${b.score} / 100`],
-    ["ไฟฟ้า", `${b.elec.toLocaleString()} kWh`],
-    ["น้ำ", `${b.water} m³`],
-    ["เชื้อเพลิง", `${b.fuel} ลิตร`],
-    ["ขยะทิ้ง", `${b.waste.general.toFixed(1)} กก.`],
-    ["รีไซเคิล + ปุ๋ย", `${(b.waste.recycle + b.waste.organic).toFixed(1)} กก.`],
-    ["อัตรา Zero Waste", `${rr}%`, "#15803d"],
+    ["เนเธเธเนเธฒ", `${b.elec.toLocaleString()} kWh`],
+    ["เธเนเธณ", `${b.water} mยณ`],
+    ["เน€เธเธทเนเธญเน€เธเธฅเธดเธ", `${b.fuel} เธฅเธดเธ•เธฃ`],
+    ["เธเธขเธฐเธ—เธดเนเธ", `${b.waste.general.toFixed(1)} เธเธ.`],
+    ["เธฃเธตเนเธเน€เธเธดเธฅ + เธเธธเนเธข", `${(b.waste.recycle + b.waste.organic).toFixed(1)} เธเธ.`],
+    ["เธญเธฑเธ•เธฃเธฒ Zero Waste", `${rr}%`, "#15803d"],
     ["Carbon Credits", `${Math.round(b.co2 * 2.4)} credits`],
-    ["รายการที่กรอก", `${b.entries} รายการ`],
-    ["สถานะ", b.status === "excellent" ? "🟢 ดีเยี่ยม" : b.status === "good" ? "🔵 ดี" : "🟡 ปานกลาง"]
+    ["เธฃเธฒเธขเธเธฒเธฃเธ—เธตเนเธเธฃเธญเธ", `${b.entries} เธฃเธฒเธขเธเธฒเธฃ`],
+    ["เธชเธ–เธฒเธเธฐ", b.status === "excellent" ? "๐ข เธ”เธตเน€เธขเธตเนเธขเธก" : b.status === "good" ? "๐”ต เธ”เธต" : "๐ก เธเธฒเธเธเธฅเธฒเธ"]
   ];
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", backdropFilter: "blur(6px)", display: "flex", alignItems: "flex-end", zIndex: 200, padding: "0 0 var(--nav-h)" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: "28px 28px 0 0", padding: 20, width: "100%", maxWidth: 640, margin: "0 auto", maxHeight: "82dvh", overflowY: "auto", position: "relative" }}>
         <div style={{ width: 40, height: 4, background: "#bbf7d0", borderRadius: 4, margin: "0 auto 16px" }} />
-        <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "#f0fdf4", border: "none", borderRadius: 10, width: 32, height: 32, cursor: "pointer", color: "#6b7280" }}>✕</button>
+        <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "#f0fdf4", border: "none", borderRadius: 10, width: 32, height: 32, cursor: "pointer", color: "#6b7280" }}>โ•</button>
         <div style={{ fontSize: 18, fontWeight: 700, color: "#14532d" }}>{b.icon} {b.name}</div>
-        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>{b.nameEn} · {b.id}</div>
+        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>{b.nameEn} ยท {b.id}</div>
         {!b.hasData ? (
           <div style={{ textAlign: "center", padding: "32px 20px", color: "#6b7280" }}>
-            <div style={{ fontSize: 44, marginBottom: 12 }}>📋</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#14532d", marginBottom: 6 }}>ยังไม่มีข้อมูล</div>
-            <button onClick={() => { onClose(); onGoUpload(); }} style={{ marginTop: 14, padding: "10px 20px", background: "#166534", color: "#fff", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>📝 ไปกรอกข้อมูล</button>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>๐“</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#14532d", marginBottom: 6 }}>เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅ</div>
+            <button onClick={() => { onClose(); onGoUpload(); }} style={{ marginTop: 14, padding: "10px 20px", background: "#166534", color: "#fff", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>๐“ เนเธเธเธฃเธญเธเธเนเธญเธกเธนเธฅ</button>
           </div>
         ) : (
           <>
@@ -580,7 +581,7 @@ function BranchModal({ b, onClose, onGoUpload }) {
                 <span style={{ fontSize: 13, fontWeight: 700, color: col || "#14532d", textAlign: "right" }}>{val}</span>
               </div>
             ))}
-            <button style={{ width: "100%", padding: 14, marginTop: 16, background: "linear-gradient(135deg,#166534,#16a34a)", color: "#fff", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>📄 สร้างรายงานสาขา</button>
+            <button style={{ width: "100%", padding: 14, marginTop: 16, background: "linear-gradient(135deg,#166534,#16a34a)", color: "#fff", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>๐“ เธชเธฃเนเธฒเธเธฃเธฒเธขเธเธฒเธเธชเธฒเธเธฒ</button>
           </>
         )}
       </div>
@@ -600,10 +601,10 @@ function ReportDetailModal({ report, totals, onClose, onDownload }) {
             <div style={{ fontSize: 18, fontWeight: 800, color: "#14532d" }}>{report.title}</div>
             <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.7, marginTop: 4 }}>{report.basis}</div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, border: "none", borderRadius: 10, background: "#f0fdf4", color: "#6b7280", cursor: "pointer" }}>✕</button>
+          <button onClick={onClose} style={{ width: 34, height: 34, border: "none", borderRadius: 10, background: "#f0fdf4", color: "#6b7280", cursor: "pointer" }}>โ•</button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 14 }}>
-          {[["Carbon รวม", totals.co2, "tCO₂e"], ["Carbon Credit", credits, "credits"], ["ข้อมูล", totals.entries, "รายการ"]].map(([l, v, u]) => (
+          {[["Carbon เธฃเธงเธก", totals.co2, "tCOโe"], ["Carbon Credit", credits, "credits"], ["เธเนเธญเธกเธนเธฅ", totals.entries, "เธฃเธฒเธขเธเธฒเธฃ"]].map(([l, v, u]) => (
             <div key={l} style={{ background: "#f0fdf4", border: "1px solid #d1fae5", borderRadius: 12, padding: 10, textAlign: "center" }}>
               <div style={{ fontSize: 10, color: "#6b7280" }}>{l}</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: "#166534" }}>{v}</div>
@@ -611,52 +612,65 @@ function ReportDetailModal({ report, totals, onClose, onDownload }) {
             </div>
           ))}
         </div>
-        <SectionTitle>หลักเกณฑ์และสูตรคำนวณ</SectionTitle>
+        <SectionTitle>เธซเธฅเธฑเธเน€เธเธ“เธ‘เนเนเธฅเธฐเธชเธนเธ•เธฃเธเธณเธเธงเธ“</SectionTitle>
         {report.formulas.map((f, i) => (
           <div key={i} style={{ padding: "9px 10px", marginBottom: 6, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 12, color: "#374151", lineHeight: 1.6 }}>{f}</div>
         ))}
-        <SectionTitle style={{ marginTop: 16 }}>แหล่งอ้างอิง / วิธีตรวจสอบ</SectionTitle>
+        <SectionTitle style={{ marginTop: 16 }}>เนเธซเธฅเนเธเธญเนเธฒเธเธญเธดเธ / เธงเธดเธเธตเธ•เธฃเธงเธเธชเธญเธ</SectionTitle>
         {report.sources.map((s, i) => (
           <div key={i} style={{ display: "flex", gap: 8, padding: "7px 0", fontSize: 12, color: "#6b7280", lineHeight: 1.6 }}>
-            <span style={{ color: "#15803d", fontWeight: 800 }}>✓</span><span>{s}</span>
+            <span style={{ color: "#15803d", fontWeight: 800 }}>โ“</span><span>{s}</span>
           </div>
         ))}
-        <button onClick={onDownload} style={{ width: "100%", padding: 13, marginTop: 14, background: "linear-gradient(135deg,#166534,#16a34a)", color: "#fff", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>⬇️ สร้าง / ดาวน์โหลดรายงานนี้</button>
+        <button onClick={onDownload} style={{ width: "100%", padding: 13, marginTop: 14, background: "linear-gradient(135deg,#166534,#16a34a)", color: "#fff", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>โฌ๏ธ เธชเธฃเนเธฒเธ / เธ”เธฒเธงเธเนเนเธซเธฅเธ”เธฃเธฒเธขเธเธฒเธเธเธตเน</button>
       </div>
     </div>
   );
 }
 
-function AIPanel({ open, onToggle, branches }) {
-  const [msgs, setMsgs] = useState([{ type: "bot", text: "สวัสดีครับ! ถามผมได้ทั้งคำถามทั่วไป งานเอกสาร ไอเดียธุรกิจ หรือเรื่อง ESG / Carbon / Zero Waste ของ Hillkoff ถ้าถามตัวเลข dashboard ผมจะอ้างอิงจากข้อมูลที่กรอกไว้ครับ 🌱" }]);
+function AIPanel({ open, onToggle, branches, entriesLog }) {
+  const [msgs, setMsgs] = useState([{ type: "bot", text: "เธชเธงเธฑเธชเธ”เธตเธเธฃเธฑเธ! เธ–เธฒเธกเธเธกเนเธ”เนเธ—เธฑเนเธเธเธณเธ–เธฒเธกเธ—เธฑเนเธงเนเธ เธเธฒเธเน€เธญเธเธชเธฒเธฃ เนเธญเน€เธ”เธตเธขเธเธธเธฃเธเธดเธ เธซเธฃเธทเธญเน€เธฃเธทเนเธญเธ ESG / Carbon / Zero Waste เธเธญเธ Hillkoff เธ–เนเธฒเธ–เธฒเธกเธ•เธฑเธงเน€เธฅเธ dashboard เธเธกเธเธฐเธญเนเธฒเธเธญเธดเธเธเธฒเธเธเนเธญเธกเธนเธฅเธ—เธตเนเธเธฃเธญเธเนเธงเนเธเธฃเธฑเธ ๐ฑ" }]);
   const [input, setInput] = useState("");
   const msgsRef = useRef(null);
   const hasData = branches.some(b => b.hasData);
   const totals = useMemo(() => branches.reduce((acc, b) => ({ co2: +(acc.co2 + b.co2).toFixed(4), elec: acc.elec + b.elec, water: acc.water + b.water, fuel: acc.fuel + b.fuel, entries: acc.entries + b.entries }), { co2: 0, elec: 0, water: 0, fuel: 0, entries: 0 }), [branches]);
+  const documentContext = useMemo(() => (entriesLog || []).flatMap(entry => (entry.documents || []).map(doc => ({
+    name: doc.name,
+    source: doc.source,
+    owner: doc.owner,
+    reference: doc.reference,
+    branchId: entry.branchId,
+    month: entry.month,
+    uploadedAt: doc.uploadedAt,
+    description: doc.description,
+    metrics: doc.analysis?.metrics,
+    evidence: doc.analysis?.evidence,
+    preview: doc.analysis?.preview
+  }))).slice(-25), [entriesLog]);
 
   const fallbackResponse = question => {
     const q = question.toLowerCase();
-    const asksDashboard = /(carbon|co2|dashboard|esg|ขยะ|ไฟฟ้า|น้ำ|เชื้อเพลิง|สาขา|รายงาน|คาร์บอน)/i.test(q);
+    const asksDashboard = /(carbon|co2|dashboard|esg|เธเธขเธฐ|เนเธเธเนเธฒ|เธเนเธณ|เน€เธเธทเนเธญเน€เธเธฅเธดเธ|เธชเธฒเธเธฒ|เธฃเธฒเธขเธเธฒเธ|เธเธฒเธฃเนเธเธญเธ)/i.test(q);
     if (!asksDashboard) {
-      return "ตอนนี้ AI API หลักเชื่อมต่อไม่สำเร็จครับ แต่สำหรับคำถามทั่วไป ผมช่วยคิดโครงให้ได้ทันที: 1) ระบุเป้าหมายให้ชัด 2) แยกตัวเลือก 3 แบบ 3) เลือกแบบที่ทำได้เร็วที่สุด แล้วค่อยปรับให้ดีขึ้น ถ้าส่งหัวข้อหรือบริบทเพิ่ม ผมจะช่วยร่างคำตอบ/ไอเดียให้เป็นชุดได้ครับ";
+      return "เธ•เธญเธเธเธตเน AI API เธซเธฅเธฑเธเน€เธเธทเนเธญเธกเธ•เนเธญเนเธกเนเธชเธณเน€เธฃเนเธเธเธฃเธฑเธ เนเธ•เนเธชเธณเธซเธฃเธฑเธเธเธณเธ–เธฒเธกเธ—เธฑเนเธงเนเธ เธเธกเธเนเธงเธขเธเธดเธ”เนเธเธฃเธเนเธซเนเนเธ”เนเธ—เธฑเธเธ—เธต: 1) เธฃเธฐเธเธธเน€เธเนเธฒเธซเธกเธฒเธขเนเธซเนเธเธฑเธ” 2) เนเธขเธเธ•เธฑเธงเน€เธฅเธทเธญเธ 3 เนเธเธ 3) เน€เธฅเธทเธญเธเนเธเธเธ—เธตเนเธ—เธณเนเธ”เนเน€เธฃเนเธงเธ—เธตเนเธชเธธเธ” เนเธฅเนเธงเธเนเธญเธขเธเธฃเธฑเธเนเธซเนเธ”เธตเธเธถเนเธ เธ–เนเธฒเธชเนเธเธซเธฑเธงเธเนเธญเธซเธฃเธทเธญเธเธฃเธดเธเธ—เน€เธเธดเนเธก เธเธกเธเธฐเธเนเธงเธขเธฃเนเธฒเธเธเธณเธ•เธญเธ/เนเธญเน€เธ”เธตเธขเนเธซเนเน€เธเนเธเธเธธเธ”เนเธ”เนเธเธฃเธฑเธ";
     }
     if (!hasData) {
-      return "ตอนนี้ AI API หลักเชื่อมต่อไม่สำเร็จ และ dashboard ยังไม่มีข้อมูลสาขา ถ้าถามเรื่องตัวเลข Carbon/สาขา ต้องกรอกข้อมูลหรืออัปโหลดไฟล์ก่อนครับ แต่ผมยังช่วยอธิบายแนวคิด ESG, Carbon Footprint, Scope 1/2/3 หรือ Zero Waste ได้";
+      return "เธ•เธญเธเธเธตเน AI API เธซเธฅเธฑเธเน€เธเธทเนเธญเธกเธ•เนเธญเนเธกเนเธชเธณเน€เธฃเนเธ เนเธฅเธฐ dashboard เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅเธชเธฒเธเธฒ เธ–เนเธฒเธ–เธฒเธกเน€เธฃเธทเนเธญเธเธ•เธฑเธงเน€เธฅเธ Carbon/เธชเธฒเธเธฒ เธ•เนเธญเธเธเธฃเธญเธเธเนเธญเธกเธนเธฅเธซเธฃเธทเธญเธญเธฑเธเนเธซเธฅเธ”เนเธเธฅเนเธเนเธญเธเธเธฃเธฑเธ เนเธ•เนเธเธกเธขเธฑเธเธเนเธงเธขเธญเธเธดเธเธฒเธขเนเธเธงเธเธดเธ” ESG, Carbon Footprint, Scope 1/2/3 เธซเธฃเธทเธญ Zero Waste เนเธ”เน";
     }
     const best = [...branches].filter(b => b.hasData).sort((a, b) => b.score - a.score)[0];
-    return `AI API หลักยังตอบไม่สำเร็จครับ แต่จากข้อมูลใน dashboard ตอนนี้ Carbon รวม ${totals.co2.toFixed(2)} tCO₂e จาก ${totals.entries} รายการ สาขาที่มี Score สูงสุดคือ ${best?.name || "—"} และ Carbon Credit ประมาณ ${Math.round(totals.co2 * 2.4)} credits`;
+    return `AI API เธซเธฅเธฑเธเธขเธฑเธเธ•เธญเธเนเธกเนเธชเธณเน€เธฃเนเธเธเธฃเธฑเธ เนเธ•เนเธเธฒเธเธเนเธญเธกเธนเธฅเนเธ dashboard เธ•เธญเธเธเธตเน Carbon เธฃเธงเธก ${totals.co2.toFixed(2)} tCOโe เธเธฒเธ ${totals.entries} เธฃเธฒเธขเธเธฒเธฃ เธชเธฒเธเธฒเธ—เธตเนเธกเธต Score เธชเธนเธเธชเธธเธ”เธเธทเธญ ${best?.name || "โ€”"} เนเธฅเธฐ Carbon Credit เธเธฃเธฐเธกเธฒเธ“ ${Math.round(totals.co2 * 2.4)} credits`;
   };
 
   const send = async () => {
     if (!input.trim()) return;
     const txt = input.trim();
     setInput("");
-    setMsgs(m => [...m, { type: "user", text: txt }, { type: "bot", text: "…", loading: true }]);
+    setMsgs(m => [...m, { type: "user", text: txt }, { type: "bot", text: "โ€ฆ", loading: true }]);
     try {
       const res = await fetch("/api/ai-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: txt, context: { totals, branches } })
+        body: JSON.stringify({ message: txt, context: { totals, branches, documents: documentContext } })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "AI API error");
@@ -680,13 +694,13 @@ function AIPanel({ open, onToggle, branches }) {
 
   return (
     <>
-      <button className="ai-button" onClick={onToggle}>🤖</button>
+      <button className="ai-button" onClick={onToggle}>๐ค–</button>
       <div className={`ai-panel ${open ? "open" : "closed"}`}>
         <div style={{ background: "linear-gradient(135deg,#0f4c2a,#15803d)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 22 }}>🤖</span>
+          <span style={{ fontSize: 22 }}>๐ค–</span>
           <div>
-          <input className="input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="ถามอะไรก็ได้ หรือถามข้อมูล ESG..." style={{ flex: 1, fontSize: 12 }} />
-          <button onClick={send} style={{ width: 38, height: 38, background: "#166534", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, cursor: "pointer" }}>➤</button>
+          <input className="input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="เธ–เธฒเธกเธญเธฐเนเธฃเธเนเนเธ”เน เธซเธฃเธทเธญเธ–เธฒเธกเธเนเธญเธกเธนเธฅ ESG..." style={{ flex: 1, fontSize: 12 }} />
+          <button onClick={send} style={{ width: 38, height: 38, background: "#166534", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, cursor: "pointer" }}>โค</button>
         </div>
         </div>
         <div ref={msgsRef} style={{ padding: 14, height: 232, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
@@ -695,8 +709,8 @@ function AIPanel({ open, onToggle, branches }) {
           ))}
         </div>
         <div style={{ display: "flex", gap: 8, padding: "12px 14px", borderTop: "1px solid #d1fae5" }}>
-          <input className="input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="ถามเกี่ยวกับ ESG / Carbon / ขยะ..." style={{ flex: 1, fontSize: 12 }} />
-          <button onClick={send} style={{ width: 38, height: 38, background: "#166534", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, cursor: "pointer" }}>➤</button>
+          <input className="input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="เธ–เธฒเธกเน€เธเธตเนเธขเธงเธเธฑเธ ESG / Carbon / เธเธขเธฐ..." style={{ flex: 1, fontSize: 12 }} />
+          <button onClick={send} style={{ width: 38, height: 38, background: "#166534", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, cursor: "pointer" }}>โค</button>
         </div>
       </div>
     </>
@@ -711,52 +725,52 @@ function PageHome({ branches, monthlyCo2, onBranchClick, onGoUpload }) {
       <div className="hero">
         <div className="brand-row">
           <div className="brand-left">
-            <div className="brand-icon">☕</div>
+            <div className="brand-icon">โ•</div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", lineHeight: 1 }}>Hillkoff</div>
               <div style={{ fontSize: 10, color: "rgba(255,255,255,.75)", marginTop: 2 }}>Zero Waste Analytics</div>
             </div>
           </div>
-          <div className="chip">📊 Analytics Platform</div>
+          <div className="chip">๐“ Analytics Platform</div>
         </div>
         <div className="hero-main">
-          <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,.65)", marginBottom: 4 }}>Carbon Footprint รวมองค์กร</div>
+          <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,.65)", marginBottom: 4 }}>Carbon Footprint เธฃเธงเธกเธญเธเธเนเธเธฃ</div>
           <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
             <div className="hero-stat" style={{ fontSize: 52, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{totals.co2}</div>
-            <div style={{ color: "rgba(255,255,255,.65)", fontSize: 13, marginBottom: 10 }}>tCO₂e</div>
+            <div style={{ color: "rgba(255,255,255,.65)", fontSize: 13, marginBottom: 10 }}>tCOโe</div>
           </div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,.65)", marginTop: 4 }}>{hasData ? "ข้อมูลสะสมทุกสาขา" : "ยังไม่มีข้อมูล — เริ่มกรอกหรืออัปโหลดในหน้า Upload"}</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,.65)", marginTop: 4 }}>{hasData ? "เธเนเธญเธกเธนเธฅเธชเธฐเธชเธกเธ—เธธเธเธชเธฒเธเธฒ" : "เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅ โ€” เน€เธฃเธดเนเธกเธเธฃเธญเธเธซเธฃเธทเธญเธญเธฑเธเนเธซเธฅเธ”เนเธเธซเธเนเธฒ Upload"}</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, margin: "14px 0" }}>
             {[totals.entries, totals.elec > 0 ? numFmt(totals.elec) : "0", "6"].map((v, i) => (
               <div key={i} style={{ background: "rgba(255,255,255,.1)", borderRadius: 12, padding: "10px 8px", textAlign: "center", border: "1px solid rgba(255,255,255,.12)" }}>
                 <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{v}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,.65)", marginTop: 2 }}>{["รายการ", "kWh", "สาขา"][i]}</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,.65)", marginTop: 2 }}>{["เธฃเธฒเธขเธเธฒเธฃ", "kWh", "เธชเธฒเธเธฒ"][i]}</div>
               </div>
             ))}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {["ESG", "Net Zero", "Scope 1·2·3", "TCFD", "Zero Waste"].map(t => <span key={t} className="chip">{t}</span>)}
+            {["ESG", "Net Zero", "Scope 1ยท2ยท3", "TCFD", "Zero Waste"].map(t => <span key={t} className="chip">{t}</span>)}
           </div>
-          <button onClick={onGoUpload} style={{ width: "100%", marginTop: 14, padding: 13, background: "rgba(255,255,255,.95)", color: "#166534", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 20px rgba(0,0,0,.15)" }}>📝 กรอก / อัปโหลดข้อมูลสาขา</button>
+          <button onClick={onGoUpload} style={{ width: "100%", marginTop: 14, padding: 13, background: "rgba(255,255,255,.95)", color: "#166534", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 20px rgba(0,0,0,.15)" }}>๐“ เธเธฃเธญเธ / เธญเธฑเธเนเธซเธฅเธ”เธเนเธญเธกเธนเธฅเธชเธฒเธเธฒ</button>
         </div>
       </div>
 
-      <SectionTitle>สาขาทั้งหมด</SectionTitle>
+      <SectionTitle>เธชเธฒเธเธฒเธ—เธฑเนเธเธซเธกเธ”</SectionTitle>
       <div className="branch-grid">{branches.map((b, i) => <BranchCard key={b.id} b={b} onClick={() => onBranchClick(i)} />)}</div>
 
       <div className="desktop-two" style={{ marginTop: 32 }}>
         <div>
-          <SectionTitle>Carbon รายเดือน</SectionTitle>
+          <SectionTitle>Carbon เธฃเธฒเธขเน€เธ”เธทเธญเธ</SectionTitle>
           <div className="card" style={{ padding: 18 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>Carbon Emission 2024</div>
-            <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>tCO₂e รายเดือน</div>
+            <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>tCOโe เธฃเธฒเธขเน€เธ”เธทเธญเธ</div>
             <MiniBarChart data={monthlyCo2} labels={MONTHS} color="#16a34a" />
           </div>
         </div>
         <div>
-          <SectionTitle>การใช้ทรัพยากรรวม</SectionTitle>
+          <SectionTitle>เธเธฒเธฃเนเธเนเธ—เธฃเธฑเธเธขเธฒเธเธฃเธฃเธงเธก</SectionTitle>
           <div className="metric-grid">
-            {[["⚡", totals.elec, "kWh", "ไฟฟ้า"], ["💧", totals.water, "m³", "น้ำ"], ["⛽", totals.fuel, "L", "เชื้อเพลิง"]].map(([icon, val, unit, lbl]) => (
+            {[["โก", totals.elec, "kWh", "เนเธเธเนเธฒ"], ["๐’ง", totals.water, "mยณ", "เธเนเธณ"], ["โฝ", totals.fuel, "L", "เน€เธเธทเนเธญเน€เธเธฅเธดเธ"]].map(([icon, val, unit, lbl]) => (
               <div key={lbl} className="card" style={{ padding: "14px 12px", textAlign: "center" }}>
                 <div style={{ fontSize: 22, marginBottom: 4 }}>{icon}</div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: val > 0 ? "#166534" : "#6b7280", lineHeight: 1 }}>{val > 0 ? numFmt(val) : "0"}</div>
@@ -769,17 +783,22 @@ function PageHome({ branches, monthlyCo2, onBranchClick, onGoUpload }) {
       </div>
 
       <div style={{ marginTop: 32, background: "linear-gradient(135deg,#0f4c2a,#166534)", borderRadius: 20, padding: 20, color: "#fff", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", right: -10, bottom: -10, fontSize: 80, opacity: .1 }}>🌿</div>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>🌱 Zero Waste & Sustainability</div>
-        <div style={{ fontSize: 12, lineHeight: 1.7, opacity: .82 }}>ระบบนี้ช่วยให้องค์กรเห็นภาพการใช้ทรัพยากร ลดต้นทุน ลด Carbon Emission และสนับสนุนแนวทาง ESG / Net Zero อย่างเป็นรูปธรรม</div>
+        <div style={{ position: "absolute", right: -10, bottom: -10, fontSize: 80, opacity: .1 }}>๐ฟ</div>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>๐ฑ Zero Waste & Sustainability</div>
+        <div style={{ fontSize: 12, lineHeight: 1.7, opacity: .82 }}>เธฃเธฐเธเธเธเธตเนเธเนเธงเธขเนเธซเนเธญเธเธเนเธเธฃเน€เธซเนเธเธ เธฒเธเธเธฒเธฃเนเธเนเธ—เธฃเธฑเธเธขเธฒเธเธฃ เธฅเธ”เธ•เนเธเธ—เธธเธ เธฅเธ” Carbon Emission เนเธฅเธฐเธชเธเธฑเธเธชเธเธธเธเนเธเธงเธ—เธฒเธ ESG / Net Zero เธญเธขเนเธฒเธเน€เธเนเธเธฃเธนเธเธเธฃเธฃเธก</div>
       </div>
     </div>
   );
 }
 
+function getCurrentMonthValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function PageUpload({ branches, onSave, showToast }) {
   const [branchId, setBranchId] = useState("HQ");
-  const [month, setMonth] = useState("2024-06");
+  const [month, setMonth] = useState(getCurrentMonthValue);
   const [docSource, setDocSource] = useState("");
   const [docOwner, setDocOwner] = useState("");
   const [docReference, setDocReference] = useState("");
@@ -802,16 +821,50 @@ function PageUpload({ branches, onSave, showToast }) {
   const fileRef = useRef(null);
 
   const currentItems = matCat ? MAT_CATALOG[matCat].items : [];
-  const currentUnit = matCat && matItemIdx !== "" ? currentItems[parseInt(matItemIdx)]?.[1] || "—" : "—";
+  const currentUnit = matCat && matItemIdx !== "" ? currentItems[parseInt(matItemIdx)]?.[1] || "โ€”" : "โ€”";
   const hasManualData = asNumber(elec) > 0 || asNumber(water) > 0 || asNumber(fuel) > 0 || matEntries.length > 0 || Object.values(waste).some(v => asNumber(v) > 0);
   const hasFileData = readyFiles.length > 0;
   const canAnalyze = hasManualData || hasFileData;
 
+  const saveExtractedData = (totals, documents = [], extraNote = note) => {
+    const ff = { diesel: 2.67, gasoline: 2.31, lpg: 2.98, cng: 2.15 }[fuelType] || 2.31;
+    const co2Elec = +(totals.elec * 0.4716 / 1000).toFixed(4);
+    const co2Water = +(totals.water * 0.00149).toFixed(4);
+    const co2Fuel = +(totals.fuel * ff / 1000).toFixed(4);
+    const co2Total = +(co2Elec + co2Water + co2Fuel).toFixed(4);
+    const wTotal = totals.wGen + totals.wRec + totals.wOrg + totals.wHaz;
+    const rr = wTotal > 0 ? ((totals.wRec + totals.wOrg) / wTotal * 100).toFixed(1) : "0.0";
+
+    onSave({
+      branchId,
+      month,
+      elec: totals.elec,
+      water: totals.water,
+      fuel: totals.fuel,
+      co2Total,
+      co2Elec,
+      co2Water,
+      co2Fuel,
+      wGen: totals.wGen,
+      wRec: totals.wRec,
+      wOrg: totals.wOrg,
+      wHaz: totals.wHaz,
+      materialItems: totals.matCount,
+      materialQty: totals.matQty,
+      recycleRate: rr,
+      materials: [...matEntries],
+      documents,
+      note: extraNote
+    });
+
+    return { co2Elec, co2Water, co2Fuel, co2Total, wTotal, rr };
+  };
+
   const addMat = () => {
-    if (!matCat) return showToast("⚠️ เลือกหมวดหมู่ก่อน");
-    if (matItemIdx === "") return showToast("⚠️ เลือกรายการก่อน");
+    if (!matCat) return showToast("โ ๏ธ เน€เธฅเธทเธญเธเธซเธกเธงเธ”เธซเธกเธนเนเธเนเธญเธ");
+    if (matItemIdx === "") return showToast("โ ๏ธ เน€เธฅเธทเธญเธเธฃเธฒเธขเธเธฒเธฃเธเนเธญเธ");
     const q = asNumber(matQty);
-    if (!q || q <= 0) return showToast("⚠️ กรอกจำนวนให้ถูกต้อง");
+    if (!q || q <= 0) return showToast("โ ๏ธ เธเธฃเธญเธเธเธณเธเธงเธเนเธซเนเธ–เธนเธเธ•เนเธญเธ");
     const [name, unit] = currentItems[parseInt(matItemIdx)];
     const catLabel = MAT_CATALOG[matCat].label.replace(/^[^ ]+ /, "");
     setMatEntries(prev => {
@@ -822,9 +875,9 @@ function PageUpload({ branches, onSave, showToast }) {
     setMatQty("");
   };
 
-  const handleFile = file => {
+  const handleFile = async file => {
     const ext = file.name.split(".").pop().toLowerCase();
-    if (!["xlsx", "csv", "pdf"].includes(ext)) return showToast("⚠️ ไฟล์นี้ไม่รองรับ");
+    if (!["xlsx", "csv", "pdf"].includes(ext)) return showToast("Unsupported file type");
     const id = Date.now() + Math.random();
     const size = file.size > 1048576 ? `${(file.size / 1048576).toFixed(1)}MB` : `${Math.max(1, Math.round(file.size / 1024))}KB`;
     const documentMeta = {
@@ -832,23 +885,89 @@ function PageUpload({ branches, onSave, showToast }) {
       name: file.name,
       ext,
       size,
-      source: docSource || "ไม่ระบุแหล่งที่มา",
-      owner: docOwner || "ไม่ระบุผู้ส่ง",
+      source: docSource || "Unspecified source",
+      owner: docOwner || "Unspecified owner",
       reference: docReference || "-",
       branchId,
       month,
       uploadedAt: new Date().toISOString()
     };
-    setUploadedFiles(prev => [{ ...documentMeta, status: "processing" }, ...prev]);
-    setTimeout(() => {
-      setUploadedFiles(prev => prev.map(f => f.id === id ? { ...f, status: "done" } : f));
-      setReadyFiles(prev => [...prev, documentMeta]);
-      showToast(`✅ นำเข้าสำเร็จ: ${file.name}`);
-    }, 900);
-  };
 
+    setUploadedFiles(prev => [{ ...documentMeta, status: "processing" }, ...prev]);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/document-analyze", { method: "POST", body: formData });
+      const analysis = await response.json();
+      if (!response.ok) throw new Error(analysis?.error || "Document analysis failed");
+
+      const metrics = analysis.metrics || {};
+      const totals = {
+        elec: asNumber(metrics.elec),
+        water: asNumber(metrics.water),
+        fuel: asNumber(metrics.fuel),
+        wGen: asNumber(metrics.wGen),
+        wRec: asNumber(metrics.wRec),
+        wOrg: asNumber(metrics.wOrg),
+        wHaz: asNumber(metrics.wHaz),
+        matCount: asNumber(metrics.matCount),
+        matQty: asNumber(metrics.matQty)
+      };
+      const hasExtractedNumbers = Object.values(totals).some(value => value > 0);
+      const fallback = hasExtractedNumbers ? null : simulateFileExtraction(file.name, branchId);
+      const finalTotals = fallback ? {
+        elec: fallback.elec,
+        water: fallback.water,
+        fuel: fallback.fuel,
+        wGen: fallback.wGen,
+        wRec: fallback.wRec,
+        wOrg: fallback.wOrg,
+        wHaz: fallback.wHaz,
+        matCount: fallback.matCount,
+        matQty: 0
+      } : totals;
+      const description = hasExtractedNumbers
+        ? `Analyzed ${analysis.ext?.toUpperCase() || ext}: ${analysis.evidence?.length || 0} evidence lines found`
+        : `No structured numbers found; fallback estimate used for ${file.name}`;
+      const document = {
+        ...documentMeta,
+        description,
+        analysis: {
+          metrics: finalTotals,
+          evidence: analysis.evidence || [],
+          preview: analysis.preview || "",
+          parser: hasExtractedNumbers ? "document-analyze" : "fallback-estimate"
+        }
+      };
+      const calculated = saveExtractedData(finalTotals, [document], `Imported from ${file.name}`);
+
+      setResult({
+        ...calculated,
+        elec: finalTotals.elec,
+        water: finalTotals.water,
+        fuel: finalTotals.fuel,
+        wGen: finalTotals.wGen,
+        wRec: finalTotals.wRec,
+        wOrg: finalTotals.wOrg,
+        wHaz: finalTotals.wHaz,
+        matCount: finalTotals.matCount,
+        matQty: finalTotals.matQty,
+        matEntries: [],
+        branchName: branches.find(b => b.id === branchId)?.name || branchId,
+        filesUsed: 1,
+        fileDescriptions: [description],
+        hasManual: false
+      });
+      setUploadedFiles(prev => prev.map(f => f.id === id ? { ...f, status: "saved" } : f));
+      showToast(`Saved to Firebase: ${file.name}`);
+    } catch (error) {
+      setUploadedFiles(prev => prev.map(f => f.id === id ? { ...f, status: "error", error: error.message } : f));
+      showToast(error.message || "Document analysis failed");
+    }
+  };
   const analyze = () => {
-    if (!canAnalyze) return showToast("⚠️ กรุณากรอกข้อมูลหรืออัปโหลดไฟล์อย่างน้อย 1 รายการ");
+    if (!canAnalyze) return showToast("โ ๏ธ เธเธฃเธธเธ“เธฒเธเธฃเธญเธเธเนเธญเธกเธนเธฅเธซเธฃเธทเธญเธญเธฑเธเนเธซเธฅเธ”เนเธเธฅเนเธญเธขเนเธฒเธเธเนเธญเธข 1 เธฃเธฒเธขเธเธฒเธฃ");
     setAnalyzing(true);
     setTimeout(() => {
       let totalElec = asNumber(elec);
@@ -903,43 +1022,44 @@ function PageUpload({ branches, onSave, showToast }) {
 
   return (
     <div className="fade-up">
-      <PageHeader title="📝 กรอกข้อมูล / นำเข้าไฟล์" sub="กรอกบิล · ขยะ · วัสดุ หรืออัปโหลด Excel/CSV/PDF แล้วกดวิเคราะห์" />
+      <PageHeader title="๐“ เธเธฃเธญเธเธเนเธญเธกเธนเธฅ / เธเธณเน€เธเนเธฒเนเธเธฅเน" sub="เธเธฃเธญเธเธเธดเธฅ ยท เธเธขเธฐ ยท เธงเธฑเธชเธ”เธธ เธซเธฃเธทเธญเธญเธฑเธเนเธซเธฅเธ” Excel/CSV/PDF เนเธฅเนเธงเธเธ”เธงเธดเน€เธเธฃเธฒเธฐเธซเน" />
 
       <div className="card" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#dcfce7", display: "grid", placeItems: "center", flexShrink: 0 }}>💡</div>
-        <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6 }}><b style={{ color: "#14532d" }}>วิธีใช้:</b> อัปโหลดไฟล์ <b>หรือ</b> กรอกข้อมูลด้วยตนเอง อย่างใดอย่างหนึ่งก็ได้ แล้วกด <b>วิเคราะห์</b></div>
+        <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#dcfce7", display: "grid", placeItems: "center", flexShrink: 0 }}>๐’ก</div>
+        <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.6 }}><b style={{ color: "#14532d" }}>เธงเธดเธเธตเนเธเน:</b> เธญเธฑเธเนเธซเธฅเธ”เนเธเธฅเน <b>เธซเธฃเธทเธญ</b> เธเธฃเธญเธเธเนเธญเธกเธนเธฅเธ”เนเธงเธขเธ•เธเน€เธญเธ เธญเธขเนเธฒเธเนเธ”เธญเธขเนเธฒเธเธซเธเธถเนเธเธเนเนเธ”เน เนเธฅเนเธงเธเธ” <b>เธงเธดเน€เธเธฃเธฒเธฐเธซเน</b></div>
       </div>
 
       <div className="form-grid-wide">
         <div>
-          <SectionTitle>① อัปโหลดไฟล์</SectionTitle>
+          <SectionTitle>โ‘  เธญเธฑเธเนเธซเธฅเธ”เนเธเธฅเน</SectionTitle>
           <div className="card" style={{ padding: 12, marginBottom: 10 }}>
             <div className="form-grid-2" style={{ marginBottom: 8 }}>
-              <FormGroup label="ที่มาของเอกสาร"><input className="input" value={docSource} onChange={e => setDocSource(e.target.value)} placeholder="เช่น บิล MEA / Supplier / POS" /></FormGroup>
-              <FormGroup label="ผู้ส่ง/เจ้าของเอกสาร"><input className="input" value={docOwner} onChange={e => setDocOwner(e.target.value)} placeholder="ชื่อผู้ส่งหรือแผนก" /></FormGroup>
+              <FormGroup label="เธ—เธตเนเธกเธฒเธเธญเธเน€เธญเธเธชเธฒเธฃ"><input className="input" value={docSource} onChange={e => setDocSource(e.target.value)} placeholder="เน€เธเนเธ เธเธดเธฅ MEA / Supplier / POS" /></FormGroup>
+              <FormGroup label="เธเธนเนเธชเนเธ/เน€เธเนเธฒเธเธญเธเน€เธญเธเธชเธฒเธฃ"><input className="input" value={docOwner} onChange={e => setDocOwner(e.target.value)} placeholder="เธเธทเนเธญเธเธนเนเธชเนเธเธซเธฃเธทเธญเนเธเธเธ" /></FormGroup>
             </div>
-            <FormGroup label="เลขที่อ้างอิง / หมายเหตุไฟล์"><input className="input" value={docReference} onChange={e => setDocReference(e.target.value)} placeholder="เลขบิล เลข PO หรือ URL ต้นทาง" /></FormGroup>
+            <FormGroup label="เน€เธฅเธเธ—เธตเนเธญเนเธฒเธเธญเธดเธ / เธซเธกเธฒเธขเน€เธซเธ•เธธเนเธเธฅเน"><input className="input" value={docReference} onChange={e => setDocReference(e.target.value)} placeholder="เน€เธฅเธเธเธดเธฅ เน€เธฅเธ PO เธซเธฃเธทเธญ URL เธ•เนเธเธ—เธฒเธ" /></FormGroup>
           </div>
           <div onClick={() => fileRef.current?.click()} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); Array.from(e.dataTransfer.files).forEach(handleFile); }} style={{ border: "2px dashed #86efac", borderRadius: 20, padding: "40px 20px", textAlign: "center", background: "#f0fdf4", cursor: "pointer" }}>
             <input ref={fileRef} type="file" multiple accept=".xlsx,.csv,.pdf" style={{ display: "none" }} onChange={e => Array.from(e.target.files || []).forEach(handleFile)} />
-            <div style={{ fontSize: 44, marginBottom: 10 }}>📂</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#14532d" }}>ลากไฟล์มาวางที่นี่</div>
-            <div style={{ fontSize: 12, color: "#6b7280" }}>หรือคลิกเพื่อเลือกไฟล์ Excel / CSV / PDF</div>
+            <div style={{ fontSize: 44, marginBottom: 10 }}>๐“</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#14532d" }}>เธฅเธฒเธเนเธเธฅเนเธกเธฒเธงเธฒเธเธ—เธตเนเธเธตเน</div>
+            <div style={{ fontSize: 12, color: "#6b7280" }}>เธซเธฃเธทเธญเธเธฅเธดเธเน€เธเธทเนเธญเน€เธฅเธทเธญเธเนเธเธฅเน Excel / CSV / PDF</div>
           </div>
 
           {uploadedFiles.length > 0 && (
             <>
-              <SectionTitle style={{ marginTop: 16 }}>ไฟล์ที่นำเข้า</SectionTitle>
+              <SectionTitle style={{ marginTop: 16 }}>เนเธเธฅเนเธ—เธตเนเธเธณเน€เธเนเธฒ</SectionTitle>
               {uploadedFiles.map(f => (
                 <div key={f.id} className="card" style={{ padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 28 }}>{({ xlsx: "📊", csv: "📋", pdf: "📄" })[f.ext]}</span>
+                  <span style={{ fontSize: 28 }}>{({ xlsx: "๐“", csv: "๐“", pdf: "๐“" })[f.ext]}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</div>
-                    <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{f.size} · {f.ext.toUpperCase()} · {f.source} · {f.owner}</div>
+                    <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{f.size} ยท {f.ext.toUpperCase()} ยท {f.source} ยท {f.owner}</div>
                     {f.status === "processing" && <div style={{ width: "100%", height: 3, background: "#dcfce7", borderRadius: 3, marginTop: 6, overflow: "hidden" }}><div style={{ height: "100%", background: "linear-gradient(90deg,#16a34a,#22c55e)", animation: "progress .9s ease forwards" }} /></div>}
-                    {f.status === "done" && <div style={{ fontSize: 10, color: "#15803d", marginTop: 3 }}>✓ พร้อมวิเคราะห์</div>}
+                    {f.status === "done" && <div style={{ fontSize: 10, color: "#15803d", marginTop: 3 }}>โ“ เธเธฃเนเธญเธกเธงเธดเน€เธเธฃเธฒเธฐเธซเน</div>}
+                    {f.status === "saved" && <div style={{ fontSize: 10, color: "#15803d", marginTop: 3 }}>Saved to Firebase</div>}
                   </div>
-                  <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 8, background: f.status === "done" ? "#dcfce7" : "#fef9c3", color: f.status === "done" ? "#166534" : "#854d0e" }}>{f.status === "done" ? "✓ พร้อม" : "กำลังอ่าน"}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 8, background: f.status === "processing" ? "#fef9c3" : "#dcfce7", color: f.status === "processing" ? "#854d0e" : "#166534" }}>{f.status === "processing" ? "Reading" : f.status === "saved" ? "Firebase" : "Ready"}</span>
                 </div>
               ))}
             </>
@@ -949,71 +1069,71 @@ function PageUpload({ branches, onSave, showToast }) {
         <div>
           {hasFileData && (
             <div style={{ background: "linear-gradient(90deg,#166534,#15803d)", borderRadius: 14, padding: "12px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 22 }}>📂</span>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{readyFiles.length} ไฟล์พร้อมวิเคราะห์</div><div style={{ fontSize: 10, color: "rgba(255,255,255,.7)" }}>ระบบจะอ่านข้อมูลและคำนวณ Carbon อัตโนมัติ</div></div>
+              <span style={{ fontSize: 22 }}>๐“</span>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{readyFiles.length} เนเธเธฅเนเธเธฃเนเธญเธกเธงเธดเน€เธเธฃเธฒเธฐเธซเน</div><div style={{ fontSize: 10, color: "rgba(255,255,255,.7)" }}>เธฃเธฐเธเธเธเธฐเธญเนเธฒเธเธเนเธญเธกเธนเธฅเนเธฅเธฐเธเธณเธเธงเธ“ Carbon เธญเธฑเธ•เนเธเธกเธฑเธ•เธด</div></div>
               <span style={{ fontSize: 10, padding: "3px 10px", borderRadius: 20, background: "rgba(255,255,255,.2)", color: "#fff", fontWeight: 700 }}>AI Ready</span>
             </div>
           )}
 
-          <SectionTitle>② กรอกข้อมูลด้วยตนเอง</SectionTitle>
-          <FormCard title="🏢 เลือกสาขาและช่วงเวลา" sub="เลือกสาขาที่ต้องการบันทึก และระบุเดือน/ปี">
+          <SectionTitle>โ‘ก เธเธฃเธญเธเธเนเธญเธกเธนเธฅเธ”เนเธงเธขเธ•เธเน€เธญเธ</SectionTitle>
+          <FormCard title="๐ข เน€เธฅเธทเธญเธเธชเธฒเธเธฒเนเธฅเธฐเธเนเธงเธเน€เธงเธฅเธฒ" sub="เน€เธฅเธทเธญเธเธชเธฒเธเธฒเธ—เธตเนเธ•เนเธญเธเธเธฒเธฃเธเธฑเธเธ—เธถเธ เนเธฅเธฐเธฃเธฐเธเธธเน€เธ”เธทเธญเธ/เธเธต">
             <div className="form-grid-2">
-              <FormGroup label="สาขา">{select(branchId, setBranchId, BRANCHES_INIT.map(b => [b.id, `${b.icon} ${b.name}`]))}</FormGroup>
-              <FormGroup label="เดือน / ปี"><input className="input" type="month" value={month} onChange={e => setMonth(e.target.value)} /></FormGroup>
+              <FormGroup label="เธชเธฒเธเธฒ">{select(branchId, setBranchId, BRANCHES_INIT.map(b => [b.id, `${b.icon} ${b.name}`]))}</FormGroup>
+              <FormGroup label="เน€เธ”เธทเธญเธ / เธเธต"><input className="input" type="month" value={month} onChange={e => setMonth(e.target.value)} /></FormGroup>
             </div>
           </FormCard>
         </div>
       </div>
 
-      <FormCard title="⚡ ค่าสาธารณูปโภค" sub="กรอกข้อมูลจากบิลค่าน้ำ ค่าไฟ และเชื้อเพลิง">
+      <FormCard title="โก เธเนเธฒเธชเธฒเธเธฒเธฃเธ“เธนเธเนเธ เธ" sub="เธเธฃเธญเธเธเนเธญเธกเธนเธฅเธเธฒเธเธเธดเธฅเธเนเธฒเธเนเธณ เธเนเธฒเนเธ เนเธฅเธฐเน€เธเธทเนเธญเน€เธเธฅเธดเธ">
         <div className="form-grid-2" style={{ marginBottom: 10 }}>
-          <FormGroup label="ค่าไฟฟ้า (kWh)">{input(elec, setElec)}</FormGroup>
-          <FormGroup label="ค่าไฟฟ้า (บาท)">{input(elecThb, setElecThb)}</FormGroup>
+          <FormGroup label="เธเนเธฒเนเธเธเนเธฒ (kWh)">{input(elec, setElec)}</FormGroup>
+          <FormGroup label="เธเนเธฒเนเธเธเนเธฒ (เธเธฒเธ—)">{input(elecThb, setElecThb)}</FormGroup>
         </div>
         <div className="form-grid-2" style={{ marginBottom: 10 }}>
-          <FormGroup label="ค่าน้ำประปา (m³)">{input(water, setWater)}</FormGroup>
-          <FormGroup label="ค่าน้ำประปา (บาท)">{input(waterThb, setWaterThb)}</FormGroup>
+          <FormGroup label="เธเนเธฒเธเนเธณเธเธฃเธฐเธเธฒ (mยณ)">{input(water, setWater)}</FormGroup>
+          <FormGroup label="เธเนเธฒเธเนเธณเธเธฃเธฐเธเธฒ (เธเธฒเธ—)">{input(waterThb, setWaterThb)}</FormGroup>
         </div>
         <div className="form-grid-2">
-          <FormGroup label="เชื้อเพลิง (ลิตร)">{input(fuel, setFuel)}</FormGroup>
-          <FormGroup label="ประเภทเชื้อเพลิง">{select(fuelType, setFuelType, [["diesel", "ดีเซล"], ["gasoline", "เบนซิน"], ["lpg", "LPG (กก.)"], ["cng", "CNG (กก.)"]])}</FormGroup>
+          <FormGroup label="เน€เธเธทเนเธญเน€เธเธฅเธดเธ (เธฅเธดเธ•เธฃ)">{input(fuel, setFuel)}</FormGroup>
+          <FormGroup label="เธเธฃเธฐเน€เธ เธ—เน€เธเธทเนเธญเน€เธเธฅเธดเธ">{select(fuelType, setFuelType, [["diesel", "เธ”เธตเน€เธเธฅ"], ["gasoline", "เน€เธเธเธเธดเธ"], ["lpg", "LPG (เธเธ.)"], ["cng", "CNG (เธเธ.)"]])}</FormGroup>
         </div>
       </FormCard>
 
-      <FormCard title="📦 รายการเบิกใช้วัสดุ" sub="เลือกหมวดหมู่ → เลือกรายการ → กรอกจำนวน → กดเพิ่ม">
+      <FormCard title="๐“ฆ เธฃเธฒเธขเธเธฒเธฃเน€เธเธดเธเนเธเนเธงเธฑเธชเธ”เธธ" sub="เน€เธฅเธทเธญเธเธซเธกเธงเธ”เธซเธกเธนเน โ’ เน€เธฅเธทเธญเธเธฃเธฒเธขเธเธฒเธฃ โ’ เธเธฃเธญเธเธเธณเธเธงเธ โ’ เธเธ”เน€เธเธดเนเธก">
         <div className="form-grid-2" style={{ marginBottom: 10 }}>
           <select className="select" value={matCat} onChange={e => { setMatCat(e.target.value); setMatItemIdx(""); }}>
-            <option value="">— เลือกหมวด —</option>
+            <option value="">โ€” เน€เธฅเธทเธญเธเธซเธกเธงเธ” โ€”</option>
             {Object.entries(MAT_CATALOG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
           <select className="select" value={matItemIdx} onChange={e => setMatItemIdx(e.target.value)}>
-            <option value="">— เลือกรายการ —</option>
+            <option value="">โ€” เน€เธฅเธทเธญเธเธฃเธฒเธขเธเธฒเธฃ โ€”</option>
             {currentItems.map(([name], i) => <option key={name} value={i}>{name}</option>)}
           </select>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <input className="input" type="number" value={matQty} onChange={e => setMatQty(e.target.value)} onKeyDown={e => e.key === "Enter" && addMat()} placeholder="0" min="0" style={{ width: 100, fontFamily: "var(--mono)", textAlign: "right" }} />
           <span style={{ fontSize: 11, color: "#6b7280", whiteSpace: "nowrap" }}>{currentUnit}</span>
-          <button onClick={addMat} style={{ padding: "9px 16px", background: "#166534", color: "#fff", border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>+ เพิ่มรายการ</button>
+          <button onClick={addMat} style={{ padding: "9px 16px", background: "#166534", color: "#fff", border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>+ เน€เธเธดเนเธกเธฃเธฒเธขเธเธฒเธฃ</button>
         </div>
         {matEntries.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 18, color: "#6b7280", fontSize: 12, border: "1.5px dashed #d1fae5", borderRadius: 10 }}>ยังไม่มีรายการ</div>
+          <div style={{ textAlign: "center", padding: 18, color: "#6b7280", fontSize: 12, border: "1.5px dashed #d1fae5", borderRadius: 10 }}>เธขเธฑเธเนเธกเนเธกเธตเธฃเธฒเธขเธเธฒเธฃ</div>
         ) : matEntries.map((e, i) => (
           <div key={`${e.name}-${i}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: "#f0fdf4", borderRadius: 10, border: "1px solid #d1fae5", marginBottom: 6 }}>
             <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 6, background: "#dcfce7", color: "#166534" }}>{e.catLabel}</span>
             <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: "#14532d" }}>{e.name}</span>
             <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: "#166534" }}>{e.qty} {e.unit}</span>
-            <button onClick={() => setMatEntries(prev => prev.filter((_, j) => j !== i))} style={{ width: 24, height: 24, border: "none", background: "rgba(239,68,68,.1)", borderRadius: 6, color: "#ef4444", cursor: "pointer" }}>✕</button>
+            <button onClick={() => setMatEntries(prev => prev.filter((_, j) => j !== i))} style={{ width: 24, height: 24, border: "none", background: "rgba(239,68,68,.1)", borderRadius: 6, color: "#ef4444", cursor: "pointer" }}>โ•</button>
           </div>
         ))}
       </FormCard>
 
-      <FormCard title="♻️ ปริมาณขยะ" sub="บันทึกขยะแต่ละประเภทที่เกิดขึ้นในเดือนนี้ (กิโลกรัม)">
+      <FormCard title="โป๏ธ เธเธฃเธดเธกเธฒเธ“เธเธขเธฐ" sub="เธเธฑเธเธ—เธถเธเธเธขเธฐเนเธ•เนเธฅเธฐเธเธฃเธฐเน€เธ เธ—เธ—เธตเนเน€เธเธดเธ”เธเธถเนเธเนเธเน€เธ”เธทเธญเธเธเธตเน (เธเธดเนเธฅเธเธฃเธฑเธก)">
         {[
-          ["🗑️ ขยะทั่วไป (ทิ้ง)", [["อาหาร/เศษอาหาร", "food"], ["กระดาษ", "paper"], ["พลาสติก", "plastic"]]],
-          ["♻️ รีไซเคิล", [["กระดาษ", "rPaper"], ["พลาสติก/แก้ว", "rPlastic"], ["โลหะ/อื่นๆ", "rMetal"]]],
-          ["🌱 ขยะอินทรีย์ (ทำปุ๋ย)", [["กากกาแฟ", "oCoffee"], ["เศษอาหาร", "oFood"], ["อื่นๆ", "oOther"]]],
-          ["⚠️ ขยะอันตราย / ฝังกลบ", [["สารเคมี", "hChem"], ["แบตเตอรี่", "hBatt"], ["ฝังกลบอื่นๆ", "hLandfill"]]]
+          ["๐—‘๏ธ เธเธขเธฐเธ—เธฑเนเธงเนเธ (เธ—เธดเนเธ)", [["เธญเธฒเธซเธฒเธฃ/เน€เธจเธฉเธญเธฒเธซเธฒเธฃ", "food"], ["เธเธฃเธฐเธ”เธฒเธฉ", "paper"], ["เธเธฅเธฒเธชเธ•เธดเธ", "plastic"]]],
+          ["โป๏ธ เธฃเธตเนเธเน€เธเธดเธฅ", [["เธเธฃเธฐเธ”เธฒเธฉ", "rPaper"], ["เธเธฅเธฒเธชเธ•เธดเธ/เนเธเนเธง", "rPlastic"], ["เนเธฅเธซเธฐ/เธญเธทเนเธเน", "rMetal"]]],
+          ["๐ฑ เธเธขเธฐเธญเธดเธเธ—เธฃเธตเธขเน (เธ—เธณเธเธธเนเธข)", [["เธเธฒเธเธเธฒเนเธ", "oCoffee"], ["เน€เธจเธฉเธญเธฒเธซเธฒเธฃ", "oFood"], ["เธญเธทเนเธเน", "oOther"]]],
+          ["โ ๏ธ เธเธขเธฐเธญเธฑเธเธ•เธฃเธฒเธข / เธเธฑเธเธเธฅเธ", [["เธชเธฒเธฃเน€เธเธกเธต", "hChem"], ["เนเธเธ•เน€เธ•เธญเธฃเธตเน", "hBatt"], ["เธเธฑเธเธเธฅเธเธญเธทเนเธเน", "hLandfill"]]]
         ].map(([lbl, fields]) => (
           <div key={lbl}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#14532d", margin: "10px 0 6px", padding: "6px 10px", background: "#f0fdf4", borderRadius: 8 }}>{lbl}</div>
@@ -1022,35 +1142,35 @@ function PageUpload({ branches, onSave, showToast }) {
         ))}
       </FormCard>
 
-      <FormCard title="📝 หมายเหตุเพิ่มเติม">
-        <FormGroup label="บันทึกข้อความ (ถ้ามี)">
-          <textarea className="textarea" value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="เช่น มีการปิดปรับปรุง / กิจกรรมพิเศษในเดือนนี้..." />
+      <FormCard title="๐“ เธซเธกเธฒเธขเน€เธซเธ•เธธเน€เธเธดเนเธกเน€เธ•เธดเธก">
+        <FormGroup label="เธเธฑเธเธ—เธถเธเธเนเธญเธเธงเธฒเธก (เธ–เนเธฒเธกเธต)">
+          <textarea className="textarea" value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="เน€เธเนเธ เธกเธตเธเธฒเธฃเธเธดเธ”เธเธฃเธฑเธเธเธฃเธธเธ / เธเธดเธเธเธฃเธฃเธกเธเธดเน€เธจเธฉเนเธเน€เธ”เธทเธญเธเธเธตเน..." />
         </FormGroup>
       </FormCard>
 
       <button onClick={analyze} disabled={analyzing || !canAnalyze} style={{ width: "100%", padding: 16, background: canAnalyze ? "linear-gradient(135deg,#166534,#16a34a)" : "#d1fae5", color: canAnalyze ? "#fff" : "#6b7280", border: "none", borderRadius: 16, fontSize: 15, fontWeight: 700, cursor: analyzing || !canAnalyze ? "not-allowed" : "pointer", boxShadow: canAnalyze ? "0 4px 20px rgba(22,101,52,.35)" : "none", marginTop: 2 }}>
-        {analyzing ? <><span style={{ display: "inline-block", animation: "spin .8s linear infinite" }}>⏳</span> กำลังคำนวณ Carbon...</> : canAnalyze ? `🔍 วิเคราะห์และบันทึกข้อมูล ${hasFileData ? `(${readyFiles.length} ไฟล์${hasManualData ? " + ข้อมูลด้วยตนเอง" : ""})` : ""}` : "🔍 วิเคราะห์และบันทึกข้อมูล"}
+        {analyzing ? <><span style={{ display: "inline-block", animation: "spin .8s linear infinite" }}>โณ</span> เธเธณเธฅเธฑเธเธเธณเธเธงเธ“ Carbon...</> : canAnalyze ? `๐” เธงเธดเน€เธเธฃเธฒเธฐเธซเนเนเธฅเธฐเธเธฑเธเธ—เธถเธเธเนเธญเธกเธนเธฅ ${hasFileData ? `(${readyFiles.length} เนเธเธฅเน${hasManualData ? " + เธเนเธญเธกเธนเธฅเธ”เนเธงเธขเธ•เธเน€เธญเธ" : ""})` : ""}` : "๐” เธงเธดเน€เธเธฃเธฒเธฐเธซเนเนเธฅเธฐเธเธฑเธเธ—เธถเธเธเนเธญเธกเธนเธฅ"}
       </button>
-      {!canAnalyze && <div style={{ textAlign: "center", fontSize: 11, color: "#6b7280", marginTop: 6 }}>อัปโหลดไฟล์ หรือ กรอกข้อมูลอย่างน้อย 1 รายการ แล้วกดวิเคราะห์</div>}
+      {!canAnalyze && <div style={{ textAlign: "center", fontSize: 11, color: "#6b7280", marginTop: 6 }}>เธญเธฑเธเนเธซเธฅเธ”เนเธเธฅเน เธซเธฃเธทเธญ เธเธฃเธญเธเธเนเธญเธกเธนเธฅเธญเธขเนเธฒเธเธเนเธญเธข 1 เธฃเธฒเธขเธเธฒเธฃ เนเธฅเนเธงเธเธ”เธงเธดเน€เธเธฃเธฒเธฐเธซเน</div>}
 
       {result && (
         <div style={{ marginTop: 12 }} className="fade-up">
           <div style={{ background: "linear-gradient(135deg,#0f4c2a,#15803d)", borderRadius: 14, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 28 }}>✅</span>
+            <span style={{ fontSize: 28 }}>โ…</span>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>บันทึกสำเร็จ — {result.branchName} · {month}</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,.7)", marginTop: 2 }}>Carbon: {result.co2Total} tCO₂e · ขยะรีไซเคิล: {result.rr}% {result.filesUsed > 0 && `· จากไฟล์: ${result.filesUsed} ไฟล์`} {result.matCount > 0 && `· วัสดุ: ${result.matCount} รายการ / ${result.matQty} หน่วย`}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>เธเธฑเธเธ—เธถเธเธชเธณเน€เธฃเนเธ โ€” {result.branchName} ยท {month}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,.7)", marginTop: 2 }}>Carbon: {result.co2Total} tCOโe ยท เธเธขเธฐเธฃเธตเนเธเน€เธเธดเธฅ: {result.rr}% {result.filesUsed > 0 && `ยท เธเธฒเธเนเธเธฅเน: ${result.filesUsed} เนเธเธฅเน`} {result.matCount > 0 && `ยท เธงเธฑเธชเธ”เธธ: ${result.matCount} เธฃเธฒเธขเธเธฒเธฃ / ${result.matQty} เธซเธเนเธงเธข`}</div>
             </div>
           </div>
           {result.filesUsed > 0 && (
             <div className="card" style={{ padding: 12, marginTop: 8 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#14532d", marginBottom: 6 }}>📂 ข้อมูลที่อ่านได้จากไฟล์</div>
-              {result.fileDescriptions.map((d, i) => <div key={i} style={{ fontSize: 11, color: "#6b7280", padding: "4px 0", borderBottom: i < result.fileDescriptions.length - 1 ? "1px solid #f0fdf4" : "none" }}>✓ {d}</div>)}
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#14532d", marginBottom: 6 }}>๐“ เธเนเธญเธกเธนเธฅเธ—เธตเนเธญเนเธฒเธเนเธ”เนเธเธฒเธเนเธเธฅเน</div>
+              {result.fileDescriptions.map((d, i) => <div key={i} style={{ fontSize: 11, color: "#6b7280", padding: "4px 0", borderBottom: i < result.fileDescriptions.length - 1 ? "1px solid #f0fdf4" : "none" }}>โ“ {d}</div>)}
             </div>
           )}
           <div className="card" style={{ padding: 12, marginTop: 8 }}>
             <div className="analytics-grid">
-              {[["ไฟฟ้า", `${result.elec} kWh`, `→ ${result.co2Elec} tCO₂e`], ["น้ำ", `${result.water} m³`, `→ ${result.co2Water} tCO₂e`], ["เชื้อเพลิง", `${result.fuel} ลิตร`, `→ ${result.co2Fuel} tCO₂e`], ["วัสดุเบิกใช้", `${result.matQty} หน่วย`, `${result.matCount} รายการ`], ["อัตรารีไซเคิล", `${result.rr}%`, "ของขยะทั้งหมด"]].map(([l, v, u]) => (
+              {[["เนเธเธเนเธฒ", `${result.elec} kWh`, `โ’ ${result.co2Elec} tCOโe`], ["เธเนเธณ", `${result.water} mยณ`, `โ’ ${result.co2Water} tCOโe`], ["เน€เธเธทเนเธญเน€เธเธฅเธดเธ", `${result.fuel} เธฅเธดเธ•เธฃ`, `โ’ ${result.co2Fuel} tCOโe`], ["เธงเธฑเธชเธ”เธธเน€เธเธดเธเนเธเน", `${result.matQty} เธซเธเนเธงเธข`, `${result.matCount} เธฃเธฒเธขเธเธฒเธฃ`], ["เธญเธฑเธ•เธฃเธฒเธฃเธตเนเธเน€เธเธดเธฅ", `${result.rr}%`, "เธเธญเธเธเธขเธฐเธ—เธฑเนเธเธซเธกเธ”"]].map(([l, v, u]) => (
                 <div key={l} style={{ textAlign: "center", padding: 10, background: "#f0fdf4", borderRadius: 10 }}>
                   <div style={{ fontSize: 9, color: "#6b7280" }}>{l}</div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: "#166534" }}>{v}</div>
@@ -1059,8 +1179,8 @@ function PageUpload({ branches, onSave, showToast }) {
               ))}
             </div>
             <div style={{ marginTop: 10, padding: 10, background: "linear-gradient(135deg,#f0fdf4,#dcfce7)", borderRadius: 10, border: "1px solid #bbf7d0", textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: "#6b7280" }}>Carbon Emission รวม</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#166534" }}>{result.co2Total} <span style={{ fontSize: 13, fontWeight: 500 }}>tCO₂e</span></div>
+              <div style={{ fontSize: 11, color: "#6b7280" }}>Carbon Emission เธฃเธงเธก</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: "#166534" }}>{result.co2Total} <span style={{ fontSize: 13, fontWeight: 500 }}>tCOโe</span></div>
             </div>
           </div>
         </div>
@@ -1080,46 +1200,46 @@ function PageAnalytics({ branches, monthlyCo2, entriesLog }) {
   const prevMonthValue = prevMonthIdx >= 0 ? monthlyCo2[prevMonthIdx] : 0;
   const monthDelta = +(latestMonthValue - prevMonthValue).toFixed(4);
   const monthDeltaPct = prevMonthValue > 0 ? +((monthDelta / prevMonthValue) * 100).toFixed(1) : null;
-  const forecasts = ["ก.ค.", "ส.ค.", "ก.ย."].map((m, i) => ({ month: m, val: (totals.co2 * (1 + (i + 1) * 0.025)).toFixed(2), trend: (i + 1) * 2.5 }));
+  const forecasts = ["เธ.เธ.", "เธช.เธ.", "เธ.เธข."].map((m, i) => ({ month: m, val: (totals.co2 * (1 + (i + 1) * 0.025)).toFixed(2), trend: (i + 1) * 2.5 }));
   const e = +(totals.elec * 0.4716 / 1000).toFixed(2);
   const w = +(totals.water * 0.00149).toFixed(2);
   const f = +(totals.fuel * 2.31 / 1000).toFixed(2);
 
   return (
     <div className="fade-up">
-      <PageHeader title="📊 Analytics + AI Forecast" sub="วิเคราะห์และคาดการณ์ด้วย AI" />
-      <SectionTitle>AI Forecast · คาดการณ์</SectionTitle>
+      <PageHeader title="๐“ Analytics + AI Forecast" sub="เธงเธดเน€เธเธฃเธฒเธฐเธซเนเนเธฅเธฐเธเธฒเธ”เธเธฒเธฃเธ“เนเธ”เนเธงเธข AI" />
+      <SectionTitle>AI Forecast ยท เธเธฒเธ”เธเธฒเธฃเธ“เน</SectionTitle>
       <div className="card" style={{ padding: 16, marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <span style={{ fontSize: 20 }}>🤖</span><span style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>AI Carbon Forecast (3 เดือนข้างหน้า)</span>
+          <span style={{ fontSize: 20 }}>๐ค–</span><span style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>AI Carbon Forecast (3 เน€เธ”เธทเธญเธเธเนเธฒเธเธซเธเนเธฒ)</span>
           <span style={{ marginLeft: "auto", fontSize: 9, padding: "2px 8px", borderRadius: 8, background: "linear-gradient(90deg,#7c3aed,#4f46e5)", color: "#fff", fontWeight: 700 }}>AI Powered</span>
         </div>
-        {!hasData ? <div style={{ textAlign: "center", padding: 24, color: "#6b7280" }}><div style={{ fontSize: 36 }}>🤖</div><div style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>ยังไม่มีข้อมูลสำหรับคาดการณ์</div><div style={{ fontSize: 12 }}>กรอกข้อมูลหรืออัปโหลดไฟล์อย่างน้อย 1 รายการ</div></div> : (
+        {!hasData ? <div style={{ textAlign: "center", padding: 24, color: "#6b7280" }}><div style={{ fontSize: 36 }}>๐ค–</div><div style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅเธชเธณเธซเธฃเธฑเธเธเธฒเธ”เธเธฒเธฃเธ“เน</div><div style={{ fontSize: 12 }}>เธเธฃเธญเธเธเนเธญเธกเธนเธฅเธซเธฃเธทเธญเธญเธฑเธเนเธซเธฅเธ”เนเธเธฅเนเธญเธขเนเธฒเธเธเนเธญเธข 1 เธฃเธฒเธขเธเธฒเธฃ</div></div> : (
           <>
-            <div className="metric-grid">{forecasts.map(fc => <div key={fc.month} style={{ background: "#f0fdf4", borderRadius: 12, padding: 10, textAlign: "center", border: "1px solid #d1fae5" }}><div style={{ fontSize: 10, color: "#6b7280" }}>{fc.month} 2024</div><div style={{ fontSize: 16, fontWeight: 800, color: "#166534" }}>{fc.val}</div><div style={{ fontSize: 9, color: "#6b7280" }}>tCO₂e</div><div style={{ fontSize: 9, color: "#ef4444", fontWeight: 700 }}>▲ {fc.trend.toFixed(1)}%</div></div>)}</div>
-            <div style={{ background: "rgba(124,58,237,.08)", border: "1px solid rgba(124,58,237,.2)", borderRadius: 12, padding: 12, marginTop: 10 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", marginBottom: 6 }}>💡 AI Insight</div><div style={{ fontSize: 11, lineHeight: 1.6, color: "#6b7280" }}>จากข้อมูล {totals.entries} รายการ — Carbon Emission รวม {totals.co2} tCO₂e แนะนำติดตามการใช้ไฟฟ้าเป็นหลัก เพราะเป็นแหล่ง Scope 2 ที่ใหญ่ที่สุด</div></div>
+            <div className="metric-grid">{forecasts.map(fc => <div key={fc.month} style={{ background: "#f0fdf4", borderRadius: 12, padding: 10, textAlign: "center", border: "1px solid #d1fae5" }}><div style={{ fontSize: 10, color: "#6b7280" }}>{fc.month} 2024</div><div style={{ fontSize: 16, fontWeight: 800, color: "#166534" }}>{fc.val}</div><div style={{ fontSize: 9, color: "#6b7280" }}>tCOโe</div><div style={{ fontSize: 9, color: "#ef4444", fontWeight: 700 }}>โ–ฒ {fc.trend.toFixed(1)}%</div></div>)}</div>
+            <div style={{ background: "rgba(124,58,237,.08)", border: "1px solid rgba(124,58,237,.2)", borderRadius: 12, padding: 12, marginTop: 10 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", marginBottom: 6 }}>๐’ก AI Insight</div><div style={{ fontSize: 11, lineHeight: 1.6, color: "#6b7280" }}>เธเธฒเธเธเนเธญเธกเธนเธฅ {totals.entries} เธฃเธฒเธขเธเธฒเธฃ โ€” Carbon Emission เธฃเธงเธก {totals.co2} tCOโe เนเธเธฐเธเธณเธ•เธดเธ”เธ•เธฒเธกเธเธฒเธฃเนเธเนเนเธเธเนเธฒเน€เธเนเธเธซเธฅเธฑเธ เน€เธเธฃเธฒเธฐเน€เธเนเธเนเธซเธฅเนเธ Scope 2 เธ—เธตเนเนเธซเธเนเธ—เธตเนเธชเธธเธ”</div></div>
           </>
         )}
       </div>
-      <SectionTitle>วิเคราะห์ข้อมูล</SectionTitle>
+      <SectionTitle>เธงเธดเน€เธเธฃเธฒเธฐเธซเนเธเนเธญเธกเธนเธฅ</SectionTitle>
       <div className="card" style={{ padding: 16, marginBottom: 14, borderColor: monthDelta <= 0 ? "#bbf7d0" : "#fecaca" }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: monthDelta <= 0 ? "#166534" : "#b91c1c" }}>เปรียบเทียบรายเดือน</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: monthDelta <= 0 ? "#166534" : "#b91c1c" }}>เน€เธเธฃเธตเธขเธเน€เธ—เธตเธขเธเธฃเธฒเธขเน€เธ”เธทเธญเธ</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-          {latestMonthIdx < 0 ? "ยังไม่มีข้อมูลรายเดือนสำหรับเปรียบเทียบ" : `${MONTHS[latestMonthIdx]} เทียบกับ ${prevMonthIdx >= 0 ? MONTHS[prevMonthIdx] : "เดือนก่อนหน้า"}: ${monthDelta <= 0 ? "ดีขึ้น" : "แย่ลง"} ${Math.abs(monthDelta)} tCO2e${monthDeltaPct !== null ? ` (${Math.abs(monthDeltaPct)}%)` : ""}`}
+          {latestMonthIdx < 0 ? "เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅเธฃเธฒเธขเน€เธ”เธทเธญเธเธชเธณเธซเธฃเธฑเธเน€เธเธฃเธตเธขเธเน€เธ—เธตเธขเธ" : `${MONTHS[latestMonthIdx]} เน€เธ—เธตเธขเธเธเธฑเธ ${prevMonthIdx >= 0 ? MONTHS[prevMonthIdx] : "เน€เธ”เธทเธญเธเธเนเธญเธเธซเธเนเธฒ"}: ${monthDelta <= 0 ? "เธ”เธตเธเธถเนเธ" : "เนเธขเนเธฅเธ"} ${Math.abs(monthDelta)} tCO2e${monthDeltaPct !== null ? ` (${Math.abs(monthDeltaPct)}%)` : ""}`}
         </div>
       </div>
       <div className="analytics-grid" style={{ marginBottom: 14 }}>
-        {[["Carbon รวม", totals.co2, "tCO₂e", totals.co2 > 0], ["ไฟฟ้ารวม", totals.elec > 0 ? numFmt(totals.elec) : "0", "kWh", totals.elec > 0], ["น้ำรวม", totals.water > 0 ? numFmt(totals.water) : "0", "m³", totals.water > 0], ["เชื้อเพลิง", totals.fuel > 0 ? numFmt(totals.fuel) : "0", "ลิตร", totals.fuel > 0]].map(([lbl, val, unit, hasD]) => <div key={lbl} className="card" style={{ padding: 12 }}><div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600, marginBottom: 4 }}>{lbl}</div><div style={{ fontSize: 22, fontWeight: 800, color: hasD ? "#166534" : "#6b7280", lineHeight: 1 }}>{val}</div><div style={{ fontSize: 10, color: "#6b7280" }}>{unit}</div></div>)}
+        {[["Carbon เธฃเธงเธก", totals.co2, "tCOโe", totals.co2 > 0], ["เนเธเธเนเธฒเธฃเธงเธก", totals.elec > 0 ? numFmt(totals.elec) : "0", "kWh", totals.elec > 0], ["เธเนเธณเธฃเธงเธก", totals.water > 0 ? numFmt(totals.water) : "0", "mยณ", totals.water > 0], ["เน€เธเธทเนเธญเน€เธเธฅเธดเธ", totals.fuel > 0 ? numFmt(totals.fuel) : "0", "เธฅเธดเธ•เธฃ", totals.fuel > 0]].map(([lbl, val, unit, hasD]) => <div key={lbl} className="card" style={{ padding: 12 }}><div style={{ fontSize: 10, color: "#6b7280", fontWeight: 600, marginBottom: 4 }}>{lbl}</div><div style={{ fontSize: 22, fontWeight: 800, color: hasD ? "#166534" : "#6b7280", lineHeight: 1 }}>{val}</div><div style={{ fontSize: 10, color: "#6b7280" }}>{unit}</div></div>)}
       </div>
       <div className="desktop-two">
-        <div className="card" style={{ padding: 18, marginBottom: 14 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>Carbon รายเดือน</div><div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>tCO₂e แต่ละเดือน</div><MiniBarChart data={monthlyCo2} labels={MONTHS} /></div>
-        <div className="card" style={{ padding: 18 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 4 }}>สัดส่วน Carbon Emission</div><div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>แยกตามแหล่งกำเนิด</div><DonutChart slices={[e, w, f]} labels={[`ไฟฟ้า · ${e} tCO₂e`, `น้ำ · ${w} tCO₂e`, `เชื้อเพลิง · ${f} tCO₂e`]} /></div>
+        <div className="card" style={{ padding: 18, marginBottom: 14 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>Carbon เธฃเธฒเธขเน€เธ”เธทเธญเธ</div><div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>tCOโe เนเธ•เนเธฅเธฐเน€เธ”เธทเธญเธ</div><MiniBarChart data={monthlyCo2} labels={MONTHS} /></div>
+        <div className="card" style={{ padding: 18 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 4 }}>เธชเธฑเธ”เธชเนเธงเธ Carbon Emission</div><div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>เนเธขเธเธ•เธฒเธกเนเธซเธฅเนเธเธเธณเน€เธเธดเธ”</div><DonutChart slices={[e, w, f]} labels={[`เนเธเธเนเธฒ ยท ${e} tCOโe`, `เธเนเธณ ยท ${w} tCOโe`, `เน€เธเธทเนเธญเน€เธเธฅเธดเธ ยท ${f} tCOโe`]} /></div>
       </div>
-      <SectionTitle style={{ marginTop: 18 }}>วิเคราะห์ขยะและวัสดุรายเดือน</SectionTitle>
+      <SectionTitle style={{ marginTop: 18 }}>เธงเธดเน€เธเธฃเธฒเธฐเธซเนเธเธขเธฐเนเธฅเธฐเธงเธฑเธชเธ”เธธเธฃเธฒเธขเน€เธ”เธทเธญเธ</SectionTitle>
       <div className="desktop-two">
         <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "#14532d", marginBottom: 8 }}>วัสดุที่เบิกใช้เยอะสุด</div>
-          {Object.keys(topMaterialsByMonth).length === 0 ? <div style={{ fontSize: 12, color: "#6b7280" }}>ยังไม่มีข้อมูลวัสดุ</div> : Object.entries(topMaterialsByMonth).map(([month, items]) => (
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#14532d", marginBottom: 8 }}>เธงเธฑเธชเธ”เธธเธ—เธตเนเน€เธเธดเธเนเธเนเน€เธขเธญเธฐเธชเธธเธ”</div>
+          {Object.keys(topMaterialsByMonth).length === 0 ? <div style={{ fontSize: 12, color: "#6b7280" }}>เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅเธงเธฑเธชเธ”เธธ</div> : Object.entries(topMaterialsByMonth).map(([month, items]) => (
             <div key={month} style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: "#166534", marginBottom: 4 }}>{month}</div>
               {items.map(item => <div key={`${month}-${item.name}`} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "5px 0", borderBottom: "1px solid #f0fdf4" }}><span>{item.name}</span><b>{numFmt(item.qty)} {item.unit}</b></div>)}
@@ -1127,8 +1247,8 @@ function PageAnalytics({ branches, monthlyCo2, entriesLog }) {
           ))}
         </div>
         <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "#14532d", marginBottom: 8 }}>ประเภทขยะที่เยอะสุด</div>
-          {Object.keys(topWasteByMonth).length === 0 ? <div style={{ fontSize: 12, color: "#6b7280" }}>ยังไม่มีข้อมูลขยะ</div> : Object.entries(topWasteByMonth).map(([month, items]) => (
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#14532d", marginBottom: 8 }}>เธเธฃเธฐเน€เธ เธ—เธเธขเธฐเธ—เธตเนเน€เธขเธญเธฐเธชเธธเธ”</div>
+          {Object.keys(topWasteByMonth).length === 0 ? <div style={{ fontSize: 12, color: "#6b7280" }}>เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅเธเธขเธฐ</div> : Object.entries(topWasteByMonth).map(([month, items]) => (
             <div key={month} style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: "#166534", marginBottom: 4 }}>{month}</div>
               {items.map(item => <div key={`${month}-${item.name}`} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "5px 0", borderBottom: "1px solid #f0fdf4" }}><span>{item.name}</span><b>{numFmt(item.qty)} {item.unit}</b></div>)}
@@ -1152,28 +1272,28 @@ function PageRanking({ branches, onBranchClick }) {
   });
   const withData = sorted.filter(b => b.hasData);
   const maxVal = withData.length ? (mode === "score" ? 100 : mode === "carbon" ? Math.max(...withData.map(b => b.co2)) : Math.max(...withData.map(b => b.elec))) : 1;
-  const unit = mode === "score" ? "pts" : mode === "carbon" ? "tCO₂e" : "kWh";
+  const unit = mode === "score" ? "pts" : mode === "carbon" ? "tCOโe" : "kWh";
   return (
     <div className="fade-up">
-      <PageHeader title="🏆 Ranking" sub="จัดอันดับสาขา Sustainability" />
-      <SectionTitle>จัดอันดับสาขา</SectionTitle>
+      <PageHeader title="๐ Ranking" sub="เธเธฑเธ”เธญเธฑเธเธ”เธฑเธเธชเธฒเธเธฒ Sustainability" />
+      <SectionTitle>เธเธฑเธ”เธญเธฑเธเธ”เธฑเธเธชเธฒเธเธฒ</SectionTitle>
       <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
-        {[["score", "Sustainability"], ["carbon", "Carbon ต่ำสุด"], ["energy", "ประหยัดพลังงาน"]].map(([k, l]) => <button key={k} onClick={() => setMode(k)} style={{ padding: "7px 16px", borderRadius: 20, fontSize: 12, fontWeight: 700, border: "1px solid #d1fae5", background: mode === k ? "#166534" : "#fff", color: mode === k ? "#fff" : "#6b7280", cursor: "pointer", whiteSpace: "nowrap" }}>{l}</button>)}
+        {[["score", "Sustainability"], ["carbon", "Carbon เธ•เนเธณเธชเธธเธ”"], ["energy", "เธเธฃเธฐเธซเธขเธฑเธ”เธเธฅเธฑเธเธเธฒเธ"]].map(([k, l]) => <button key={k} onClick={() => setMode(k)} style={{ padding: "7px 16px", borderRadius: 20, fontSize: 12, fontWeight: 700, border: "1px solid #d1fae5", background: mode === k ? "#166534" : "#fff", color: mode === k ? "#fff" : "#6b7280", cursor: "pointer", whiteSpace: "nowrap" }}>{l}</button>)}
       </div>
-      {!hasData ? <div className="card" style={{ padding: "32px 20px", textAlign: "center", color: "#6b7280" }}><div style={{ fontSize: 40 }}>🏆</div><div style={{ fontSize: 14, fontWeight: 700, color: "#14532d" }}>ยังไม่มีข้อมูลจัดอันดับ</div><div style={{ fontSize: 12 }}>กรอกข้อมูลหรืออัปโหลดไฟล์ในหน้า Upload เพื่อเริ่มการจัดอันดับ</div></div> : sorted.map(b => {
+      {!hasData ? <div className="card" style={{ padding: "32px 20px", textAlign: "center", color: "#6b7280" }}><div style={{ fontSize: 40 }}>๐</div><div style={{ fontSize: 14, fontWeight: 700, color: "#14532d" }}>เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅเธเธฑเธ”เธญเธฑเธเธ”เธฑเธ</div><div style={{ fontSize: 12 }}>เธเธฃเธญเธเธเนเธญเธกเธนเธฅเธซเธฃเธทเธญเธญเธฑเธเนเธซเธฅเธ”เนเธเธฅเนเนเธเธซเธเนเธฒ Upload เน€เธเธทเนเธญเน€เธฃเธดเนเธกเธเธฒเธฃเธเธฑเธ”เธญเธฑเธเธ”เธฑเธ</div></div> : sorted.map(b => {
         const val = mode === "score" ? b.score : mode === "carbon" ? b.co2 : b.elec;
         const pct = b.hasData ? Math.round((mode === "carbon" || mode === "energy" ? (maxVal - val) / maxVal : val / maxVal) * 100) : 0;
         const rankIdx = withData.indexOf(b);
         return (
           <button key={b.id} onClick={() => onBranchClick(branches.indexOf(b))} className="card" style={{ width: "100%", padding: 16, marginBottom: 10, display: "flex", alignItems: "center", gap: 14, cursor: "pointer", textAlign: "left" }}>
-            <div style={{ fontSize: 28, fontWeight: 800, minWidth: 40, textAlign: "center", color: rankIdx === 0 ? "#f59e0b" : rankIdx === 1 ? "#94a3b8" : rankIdx === 2 ? "#b45309" : "#86efac" }}>{b.hasData && rankIdx < 3 ? ["🥇", "🥈", "🥉"][rankIdx] : b.hasData ? rankIdx + 1 : "—"}</div>
-            <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#14532d" }}>{b.icon} {b.name}</div><div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{b.hasData ? b.nameEn : "ยังไม่มีข้อมูล"}</div><div style={{ marginTop: 6, height: 6, background: "#f0fdf4", borderRadius: 6, overflow: "hidden" }}><div style={{ height: "100%", borderRadius: 6, background: "linear-gradient(90deg,#16a34a,#22c55e)", width: `${pct}%`, transition: "width 1s ease" }} /></div></div>
-            <div style={{ textAlign: "right" }}><div style={{ fontSize: 22, fontWeight: 800, color: b.hasData ? "#166534" : "#6b7280" }}>{b.hasData ? val : "—"}</div><div style={{ fontSize: 9, color: "#6b7280" }}>{b.hasData ? unit : ""}</div></div>
+            <div style={{ fontSize: 28, fontWeight: 800, minWidth: 40, textAlign: "center", color: rankIdx === 0 ? "#f59e0b" : rankIdx === 1 ? "#94a3b8" : rankIdx === 2 ? "#b45309" : "#86efac" }}>{b.hasData && rankIdx < 3 ? ["๐ฅ", "๐ฅ", "๐ฅ"][rankIdx] : b.hasData ? rankIdx + 1 : "โ€”"}</div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: "#14532d" }}>{b.icon} {b.name}</div><div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{b.hasData ? b.nameEn : "เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅ"}</div><div style={{ marginTop: 6, height: 6, background: "#f0fdf4", borderRadius: 6, overflow: "hidden" }}><div style={{ height: "100%", borderRadius: 6, background: "linear-gradient(90deg,#16a34a,#22c55e)", width: `${pct}%`, transition: "width 1s ease" }} /></div></div>
+            <div style={{ textAlign: "right" }}><div style={{ fontSize: 22, fontWeight: 800, color: b.hasData ? "#166534" : "#6b7280" }}>{b.hasData ? val : "โ€”"}</div><div style={{ fontSize: 9, color: "#6b7280" }}>{b.hasData ? unit : ""}</div></div>
           </button>
         );
       })}
       <SectionTitle style={{ marginTop: 8 }}>ESG Radar</SectionTitle>
-      <div className="card" style={{ padding: 18 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 4 }}>ประสิทธิภาพรอบด้าน</div><div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>Score · Efficiency · Reduction · ทุกสาขา</div><RadarChart branches={branches} /></div>
+      <div className="card" style={{ padding: 18 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 4 }}>เธเธฃเธฐเธชเธดเธ—เธเธดเธ เธฒเธเธฃเธญเธเธ”เนเธฒเธ</div><div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>Score ยท Efficiency ยท Reduction ยท เธ—เธธเธเธชเธฒเธเธฒ</div><RadarChart branches={branches} /></div>
     </div>
   );
 }
@@ -1218,35 +1338,35 @@ function PageReports({ branches, monthlyCo2, yearlyStats, entriesLog, showToast 
     showToast(`Downloaded ${reportName} (${format.toUpperCase()})`);
   };
   const reports = [
-    ["📊", "Executive ESG Report", "สรุปผลการดำเนินงาน ESG ประจำเดือน พร้อม KPI และ Carbon Summary", "PDF · Excel", "esg"],
-    ["🌍", "Carbon Emission Report", "รายงาน Carbon Footprint รายสาขา พร้อม Scope 1, 2, 3", "PDF", "carbon"],
-    ["🏛️", "TCFD Disclosure Report", "รายงานตามมาตรฐาน TCFD ครบทั้ง 4 เสาหลัก", "PDF · TCFD Ready", "tcfd"],
-    ["📅", "Monthly Sustainability Report", "รายงานสรุปรายเดือน ค่าไฟ ค่าน้ำ เชื้อเพลิง และแนวโน้ม", "Excel", "monthly"],
-    ["🏢", "Branch Comparison Report", "เปรียบเทียบประสิทธิภาพการใช้ทรัพยากรทุกสาขา", "PDF · Excel", "branch"]
+    ["๐“", "Executive ESG Report", "เธชเธฃเธธเธเธเธฅเธเธฒเธฃเธ”เธณเน€เธเธดเธเธเธฒเธ ESG เธเธฃเธฐเธเธณเน€เธ”เธทเธญเธ เธเธฃเนเธญเธก KPI เนเธฅเธฐ Carbon Summary", "PDF ยท Excel", "esg"],
+    ["๐", "Carbon Emission Report", "เธฃเธฒเธขเธเธฒเธ Carbon Footprint เธฃเธฒเธขเธชเธฒเธเธฒ เธเธฃเนเธญเธก Scope 1, 2, 3", "PDF", "carbon"],
+    ["๐๏ธ", "TCFD Disclosure Report", "เธฃเธฒเธขเธเธฒเธเธ•เธฒเธกเธกเธฒเธ•เธฃเธเธฒเธ TCFD เธเธฃเธเธ—เธฑเนเธ 4 เน€เธชเธฒเธซเธฅเธฑเธ", "PDF ยท TCFD Ready", "tcfd"],
+    ["๐“…", "Monthly Sustainability Report", "เธฃเธฒเธขเธเธฒเธเธชเธฃเธธเธเธฃเธฒเธขเน€เธ”เธทเธญเธ เธเนเธฒเนเธ เธเนเธฒเธเนเธณ เน€เธเธทเนเธญเน€เธเธฅเธดเธ เนเธฅเธฐเนเธเธงเนเธเนเธก", "Excel", "monthly"],
+    ["๐ข", "Branch Comparison Report", "เน€เธเธฃเธตเธขเธเน€เธ—เธตเธขเธเธเธฃเธฐเธชเธดเธ—เธเธดเธ เธฒเธเธเธฒเธฃเนเธเนเธ—เธฃเธฑเธเธขเธฒเธเธฃเธ—เธธเธเธชเธฒเธเธฒ", "PDF ยท Excel", "branch"]
   ];
   return (
     <div className="fade-up">
-      <PageHeader title="📄 AI Reports" sub="TCFD · Carbon Credit · ESG Platform" />
-      <SectionTitle>รายงานอัตโนมัติ · AI</SectionTitle>
+      <PageHeader title="๐“ AI Reports" sub="TCFD ยท Carbon Credit ยท ESG Platform" />
+      <SectionTitle>เธฃเธฒเธขเธเธฒเธเธญเธฑเธ•เนเธเธกเธฑเธ•เธด ยท AI</SectionTitle>
       <div style={{ background: "linear-gradient(135deg,#0f4c2a,#166534)", borderRadius: 20, padding: 18, marginBottom: 12, position: "relative", overflow: "hidden" }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 4 }}>🤖 สร้าง ESG Report อัตโนมัติ</div>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,.65)", marginBottom: 14 }}>AI วิเคราะห์ข้อมูลทั้งหมดและสร้างรายงานพร้อมส่งผู้บริหาร</div>
-        <button onClick={() => { showToast("🤖 AI กำลังวิเคราะห์..."); setTimeout(() => showToast("✅ ESG Report พร้อมแล้ว"), 1400); }} style={{ background: "rgba(255,255,255,.95)", color: "#166534", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>✨ สร้างรายงานทันที</button>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 4 }}>๐ค– เธชเธฃเนเธฒเธ ESG Report เธญเธฑเธ•เนเธเธกเธฑเธ•เธด</div>
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,.65)", marginBottom: 14 }}>AI เธงเธดเน€เธเธฃเธฒเธฐเธซเนเธเนเธญเธกเธนเธฅเธ—เธฑเนเธเธซเธกเธ”เนเธฅเธฐเธชเธฃเนเธฒเธเธฃเธฒเธขเธเธฒเธเธเธฃเนเธญเธกเธชเนเธเธเธนเนเธเธฃเธดเธซเธฒเธฃ</div>
+        <button onClick={() => { showToast("๐ค– AI เธเธณเธฅเธฑเธเธงเธดเน€เธเธฃเธฒเธฐเธซเน..."); setTimeout(() => showToast("โ… ESG Report เธเธฃเนเธญเธกเนเธฅเนเธง"), 1400); }} style={{ background: "rgba(255,255,255,.95)", color: "#166534", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>โจ เธชเธฃเนเธฒเธเธฃเธฒเธขเธเธฒเธเธ—เธฑเธเธ—เธต</button>
       </div>
       <div className="desktop-two">
         <div>
           <SectionTitle>TCFD Framework</SectionTitle>
           <div className="analytics-grid" style={{ marginBottom: 12 }}>
-            {[["🏛️", "Governance", "การกำกับดูแลด้านสภาพภูมิอากาศ", "✓ 92%", "#15803d"], ["⚠️", "Risk & Opp.", "ความเสี่ยงและโอกาสด้านภูมิอากาศ", "● 74%", "#d97706"], ["🎯", "Strategy", "กลยุทธ์รับมือการเปลี่ยนแปลง", "✓ 88%", "#15803d"], ["📏", "Metrics", "ตัวชี้วัดและเป้าหมาย Net Zero", "✓ 95%", "#15803d"]].map(([icon, title, desc, score, col]) => <div key={title} className="card" style={{ padding: 12 }}><div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div><div style={{ fontSize: 11, fontWeight: 700, color: "#14532d" }}>{title}</div><div style={{ fontSize: 10, color: "#6b7280", lineHeight: 1.4 }}>{desc}</div><div style={{ fontSize: 16, fontWeight: 800, marginTop: 6, color: col }}>{score}</div></div>)}
+            {[["๐๏ธ", "Governance", "เธเธฒเธฃเธเธณเธเธฑเธเธ”เธนเนเธฅเธ”เนเธฒเธเธชเธ เธฒเธเธ เธนเธกเธดเธญเธฒเธเธฒเธจ", "โ“ 92%", "#15803d"], ["โ ๏ธ", "Risk & Opp.", "เธเธงเธฒเธกเน€เธชเธตเนเธขเธเนเธฅเธฐเนเธญเธเธฒเธชเธ”เนเธฒเธเธ เธนเธกเธดเธญเธฒเธเธฒเธจ", "โ— 74%", "#d97706"], ["๐ฏ", "Strategy", "เธเธฅเธขเธธเธ—เธเนเธฃเธฑเธเธกเธทเธญเธเธฒเธฃเน€เธเธฅเธตเนเธขเธเนเธเธฅเธ", "โ“ 88%", "#15803d"], ["๐“", "Metrics", "เธ•เธฑเธงเธเธตเนเธงเธฑเธ”เนเธฅเธฐเน€เธเนเธฒเธซเธกเธฒเธข Net Zero", "โ“ 95%", "#15803d"]].map(([icon, title, desc, score, col]) => <div key={title} className="card" style={{ padding: 12 }}><div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div><div style={{ fontSize: 11, fontWeight: 700, color: "#14532d" }}>{title}</div><div style={{ fontSize: 10, color: "#6b7280", lineHeight: 1.4 }}>{desc}</div><div style={{ fontSize: 16, fontWeight: 800, marginTop: 6, color: col }}>{score}</div></div>)}
           </div>
         </div>
         <div>
           <SectionTitle>Carbon Credit Platform</SectionTitle>
           <div style={{ background: "linear-gradient(135deg,#1e3a5f,#1d4ed8)", borderRadius: 20, padding: 18, marginBottom: 12, overflow: "hidden" }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,.6)" }}>Carbon Credits Available</div>
-            <div style={{ fontSize: 40, fontWeight: 800, color: "#fff", margin: "4px 0" }}>{credits} <span style={{ fontSize: 16, opacity: .7 }}>tCO₂e</span></div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,.6)" }}>มูลค่าตลาดโดยประมาณ ฿ {(credits * 2000).toLocaleString()}</div>
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}><button onClick={() => showToast("💰 เชื่อมต่อ Carbon Credit Exchange...")} style={{ flex: 1, padding: 10, border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "rgba(255,255,255,.95)", color: "#1d4ed8" }}>🛒 ซื้อ Credits</button><button onClick={() => showToast("📈 ส่งคำสั่งขาย...")} style={{ flex: 1, padding: 10, border: "1px solid rgba(255,255,255,.3)", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "rgba(255,255,255,.15)", color: "#fff" }}>💸 ขาย Credits</button></div>
+            <div style={{ fontSize: 40, fontWeight: 800, color: "#fff", margin: "4px 0" }}>{credits} <span style={{ fontSize: 16, opacity: .7 }}>tCOโe</span></div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,.6)" }}>เธกเธนเธฅเธเนเธฒเธ•เธฅเธฒเธ”เนเธ”เธขเธเธฃเธฐเธกเธฒเธ“ เธฟ {(credits * 2000).toLocaleString()}</div>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}><button onClick={() => showToast("๐’ฐ เน€เธเธทเนเธญเธกเธ•เนเธญ Carbon Credit Exchange...")} style={{ flex: 1, padding: 10, border: "none", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "rgba(255,255,255,.95)", color: "#1d4ed8" }}>๐’ เธเธทเนเธญ Credits</button><button onClick={() => showToast("๐“ เธชเนเธเธเธณเธชเธฑเนเธเธเธฒเธข...")} style={{ flex: 1, padding: 10, border: "1px solid rgba(255,255,255,.3)", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "rgba(255,255,255,.15)", color: "#fff" }}>๐’ธ เธเธฒเธข Credits</button></div>
           </div>
         </div>
       </div>
@@ -1260,7 +1380,7 @@ function PageReports({ branches, monthlyCo2, yearlyStats, entriesLog, showToast 
           </select>
         </FormGroup>
       </div>
-      <SectionTitle>รายงานผู้บริหาร</SectionTitle>
+      <SectionTitle>เธฃเธฒเธขเธเธฒเธเธเธนเนเธเธฃเธดเธซเธฒเธฃ</SectionTitle>
       <div className="report-list">
         {reports.map(([icon, title, desc, badge, type]) => (
           <button key={type} onClick={() => setSelectedReport(type)} className="card" style={{ padding: 16, display: "flex", alignItems: "center", gap: 14, cursor: "pointer", textAlign: "left" }}>
@@ -1270,11 +1390,11 @@ function PageReports({ branches, monthlyCo2, yearlyStats, entriesLog, showToast 
               <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2, lineHeight: 1.5 }}>{desc}</div>
               <span style={{ fontSize: 9, fontWeight: 700, padding: "3px 9px", borderRadius: 8, background: "#f0fdf4", color: "#15803d", border: "1px solid #d1fae5", display: "inline-block", marginTop: 6 }}>{badge}</span>
             </div>
-            <span style={{ fontSize: 22 }}>⬇️</span>
+            <span style={{ fontSize: 22 }}>โฌ๏ธ</span>
           </button>
         ))}
       </div>
-      <button onClick={() => downloadReport("esg")} style={{ width: "100%", padding: 14, background: "linear-gradient(135deg,#166534,#16a34a)", color: "#fff", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", marginTop: 12 }}>🔄 สร้างรายงานทั้งหมด</button>
+      <button onClick={() => downloadReport("esg")} style={{ width: "100%", padding: 14, background: "linear-gradient(135deg,#166534,#16a34a)", color: "#fff", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", marginTop: 12 }}>๐” เธชเธฃเนเธฒเธเธฃเธฒเธขเธเธฒเธเธ—เธฑเนเธเธซเธกเธ”</button>
       <ReportDetailModal report={selectedReport ? REPORT_DETAILS[selectedReport] : null} totals={totals} onClose={() => setSelectedReport(null)} onDownload={() => downloadReport(selectedReport)} />
     </div>
   );
@@ -1301,23 +1421,23 @@ function PageSettings({ user, userProfile, loginHistory, entriesLog, databaseSta
 
   return (
     <div className="fade-up">
-      <PageHeader title="⚙️ Settings" sub="ข้อมูลผู้ใช้ · ประวัติล็อกอิน · ประวัติเอกสารและการคีย์ข้อมูล" />
+      <PageHeader title="โ๏ธ Settings" sub="เธเนเธญเธกเธนเธฅเธเธนเนเนเธเน ยท เธเธฃเธฐเธงเธฑเธ•เธดเธฅเนเธญเธเธญเธดเธ ยท เธเธฃเธฐเธงเธฑเธ•เธดเน€เธญเธเธชเธฒเธฃเนเธฅเธฐเธเธฒเธฃเธเธตเธขเนเธเนเธญเธกเธนเธฅ" />
       <div className="card" style={{ padding: 12, marginBottom: 14, borderColor: databaseStatus === "connected" ? "#bbf7d0" : "#fde68a", background: databaseStatus === "connected" ? "#f0fdf4" : "#fffbeb" }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: databaseStatus === "connected" ? "#166534" : "#92400e" }}>
-          {databaseStatus === "connected" ? "✅ Database connected" : databaseStatus === "checking" ? "⏳ กำลังตรวจสอบ database" : "⚠️ บันทึกสำรองในเครื่อง"}
+          {databaseStatus === "connected" ? "โ… Database connected" : databaseStatus === "checking" ? "โณ เธเธณเธฅเธฑเธเธ•เธฃเธงเธเธชเธญเธ database" : "โ ๏ธ เธเธฑเธเธ—เธถเธเธชเธณเธฃเธญเธเนเธเน€เธเธฃเธทเนเธญเธ"}
         </div>
         <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>
-          {databaseStatus === "connected" ? "ข้อมูลถูกส่งเข้า Firestore แล้ว และยังมีสำเนาสำรองใน browser" : "ระบบยังใช้งานได้และข้อมูลไม่หายหลัง refresh ใน browser นี้ แต่ควรตรวจค่า GOOGLE_SERVICE_ACCOUNT_JSON / GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 บน Vercel เพื่อให้ส่งเข้า database กลาง"}
+          {databaseStatus === "connected" ? "เธเนเธญเธกเธนเธฅเธ–เธนเธเธชเนเธเน€เธเนเธฒ Firestore เนเธฅเนเธง เนเธฅเธฐเธขเธฑเธเธกเธตเธชเธณเน€เธเธฒเธชเธณเธฃเธญเธเนเธ browser" : "เธฃเธฐเธเธเธขเธฑเธเนเธเนเธเธฒเธเนเธ”เนเนเธฅเธฐเธเนเธญเธกเธนเธฅเนเธกเนเธซเธฒเธขเธซเธฅเธฑเธ refresh เนเธ browser เธเธตเน เนเธ•เนเธเธงเธฃเธ•เธฃเธงเธเธเนเธฒ GOOGLE_SERVICE_ACCOUNT_JSON / GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 เธเธ Vercel เน€เธเธทเนเธญเนเธซเนเธชเนเธเน€เธเนเธฒ database เธเธฅเธฒเธ"}
         </div>
       </div>
-      <FormCard title="👤 ข้อมูลผู้ใช้งาน" sub="ข้อมูลนี้ใช้ประกอบประวัติและรายงานภายในระบบ">
+      <FormCard title="๐‘ค เธเนเธญเธกเธนเธฅเธเธนเนเนเธเนเธเธฒเธ" sub="เธเนเธญเธกเธนเธฅเธเธตเนเนเธเนเธเธฃเธฐเธเธญเธเธเธฃเธฐเธงเธฑเธ•เธดเนเธฅเธฐเธฃเธฒเธขเธเธฒเธเธ เธฒเธขเนเธเธฃเธฐเธเธ">
         <div className="form-grid-2" style={{ marginBottom: 10 }}>
-          <FormGroup label="อีเมลล็อกอิน"><input className="input" value={user?.email || "-"} readOnly /></FormGroup>
+          <FormGroup label="เธญเธตเน€เธกเธฅเธฅเนเธญเธเธญเธดเธ"><input className="input" value={user?.email || "-"} readOnly /></FormGroup>
           <FormGroup label="User ID"><input className="input" value={user?.id || "-"} readOnly /></FormGroup>
         </div>
         <div className="form-grid-2">
-          <FormGroup label="ชื่อผู้ใช้งาน"><input className="input" value={userProfile.name || ""} onChange={e => onProfileChange({ ...userProfile, name: e.target.value })} placeholder="ชื่อ-นามสกุล" /></FormGroup>
-          <FormGroup label="แผนก / บทบาท"><input className="input" value={userProfile.role || ""} onChange={e => onProfileChange({ ...userProfile, role: e.target.value })} placeholder="เช่น Sustainability / Admin" /></FormGroup>
+          <FormGroup label="เธเธทเนเธญเธเธนเนเนเธเนเธเธฒเธ"><input className="input" value={userProfile.name || ""} onChange={e => onProfileChange({ ...userProfile, name: e.target.value })} placeholder="เธเธทเนเธญ-เธเธฒเธกเธชเธเธธเธฅ" /></FormGroup>
+          <FormGroup label="เนเธเธเธ / เธเธ—เธเธฒเธ—"><input className="input" value={userProfile.role || ""} onChange={e => onProfileChange({ ...userProfile, role: e.target.value })} placeholder="เน€เธเนเธ Sustainability / Admin" /></FormGroup>
         </div>
       </FormCard>
 
@@ -1338,61 +1458,80 @@ function PageSettings({ user, userProfile, loginHistory, entriesLog, databaseSta
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: "#14532d" }}>White Paper: Hillkoff Zero Waste Analytics</div>
             <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.6, marginTop: 4 }}>
-              สรุปแนวคิดโครงการ วิธีคิดข้อมูล Carbon / Zero Waste ธรรมาภิบาลข้อมูล และเป้าหมายการใช้งานสำหรับแนบประกอบการประชุมหรือส่งต่อให้ทีมบริหาร
+              เธชเธฃเธธเธเนเธเธงเธเธดเธ”เนเธเธฃเธเธเธฒเธฃ เธงเธดเธเธตเธเธดเธ”เธเนเธญเธกเธนเธฅ Carbon / Zero Waste เธเธฃเธฃเธกเธฒเธ เธดเธเธฒเธฅเธเนเธญเธกเธนเธฅ เนเธฅเธฐเน€เธเนเธฒเธซเธกเธฒเธขเธเธฒเธฃเนเธเนเธเธฒเธเธชเธณเธซเธฃเธฑเธเนเธเธเธเธฃเธฐเธเธญเธเธเธฒเธฃเธเธฃเธฐเธเธธเธกเธซเธฃเธทเธญเธชเนเธเธ•เนเธญเนเธซเนเธ—เธตเธกเธเธฃเธดเธซเธฒเธฃ
             </div>
-            <button onClick={() => downloadBlob("hillkoff-zero-waste-white-paper.html", WHITE_PAPER_HTML)} style={{ marginTop: 10, padding: "9px 13px", border: "none", borderRadius: 10, background: "#166534", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>ดาวน์โหลด White Paper</button>
+            <button onClick={() => downloadBlob("hillkoff-zero-waste-white-paper.html", WHITE_PAPER_HTML)} style={{ marginTop: 10, padding: "9px 13px", border: "none", borderRadius: 10, background: "#166534", color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>เธ”เธฒเธงเธเนเนเธซเธฅเธ” White Paper</button>
           </div>
         </div>
       </div>
 
       <div className="card" style={{ padding: 12, marginBottom: 14 }}>
-        <FormGroup label="ค้นหาด่วนเอกสาร / ประวัติการคีย์ข้อมูล">
-          <input className="input" value={query} onChange={e => setQuery(e.target.value)} placeholder="ค้นหาชื่อไฟล์ แหล่งที่มา เลขอ้างอิง สาขา เดือน หรือวัสดุ" />
+        <FormGroup label="เธเนเธเธซเธฒเธ”เนเธงเธเน€เธญเธเธชเธฒเธฃ / เธเธฃเธฐเธงเธฑเธ•เธดเธเธฒเธฃเธเธตเธขเนเธเนเธญเธกเธนเธฅ">
+          <input className="input" value={query} onChange={e => setQuery(e.target.value)} placeholder="เธเนเธเธซเธฒเธเธทเนเธญเนเธเธฅเน เนเธซเธฅเนเธเธ—เธตเนเธกเธฒ เน€เธฅเธเธญเนเธฒเธเธญเธดเธ เธชเธฒเธเธฒ เน€เธ”เธทเธญเธ เธซเธฃเธทเธญเธงเธฑเธชเธ”เธธ" />
         </FormGroup>
       </div>
 
       <div className="desktop-two">
         <div>
-          <SectionTitle>ประวัติการล็อกอิน</SectionTitle>
+          <SectionTitle>เธเธฃเธฐเธงเธฑเธ•เธดเธเธฒเธฃเธฅเนเธญเธเธญเธดเธ</SectionTitle>
           {(loginHistory || []).slice(0, 12).map((item, i) => (
             <div key={`${item.at}-${i}`} className="card" style={{ padding: 12, marginBottom: 8 }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: "#14532d" }}>{item.email}</div>
-              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 3 }}>{new Date(item.at).toLocaleString()} · {item.userAgent || "browser"}</div>
+              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 3 }}>{new Date(item.at).toLocaleString()} ยท {item.userAgent || "browser"}</div>
             </div>
           ))}
-          {(!loginHistory || loginHistory.length === 0) && <div className="card" style={{ padding: 18, fontSize: 12, color: "#6b7280" }}>ยังไม่มีประวัติล็อกอิน</div>}
+          {(!loginHistory || loginHistory.length === 0) && <div className="card" style={{ padding: 18, fontSize: 12, color: "#6b7280" }}>เธขเธฑเธเนเธกเนเธกเธตเธเธฃเธฐเธงเธฑเธ•เธดเธฅเนเธญเธเธญเธดเธ</div>}
         </div>
 
         <div>
-          <SectionTitle>ประวัติการคีย์ข้อมูล</SectionTitle>
+          <SectionTitle>เธเธฃเธฐเธงเธฑเธ•เธดเธเธฒเธฃเธเธตเธขเนเธเนเธญเธกเธนเธฅ</SectionTitle>
           {filteredEntries.slice(0, 12).map(entry => {
             const branchName = BRANCHES_INIT.find(b => b.id === entry.branchId)?.name || entry.branchId;
             return (
               <div key={entry.id} className="card" style={{ padding: 12, marginBottom: 8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "#14532d" }}>{branchName} · {entry.month}</div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "#166534" }}>{entry.co2} tCO₂e</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#14532d" }}>{branchName} ยท {entry.month}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#166534" }}>{entry.co2} tCOโe</div>
                 </div>
-                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>ไฟฟ้า {entry.elec} kWh · น้ำ {entry.water} m³ · เชื้อเพลิง {entry.fuel} ลิตร · เอกสาร {(entry.documents || []).length} ไฟล์</div>
+                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>เนเธเธเนเธฒ {entry.elec} kWh ยท เธเนเธณ {entry.water} mยณ ยท เน€เธเธทเนเธญเน€เธเธฅเธดเธ {entry.fuel} เธฅเธดเธ•เธฃ ยท เน€เธญเธเธชเธฒเธฃ {(entry.documents || []).length} เนเธเธฅเน</div>
               </div>
             );
           })}
-          {filteredEntries.length === 0 && <div className="card" style={{ padding: 18, fontSize: 12, color: "#6b7280" }}>ไม่พบประวัติการคีย์ข้อมูล</div>}
+          {filteredEntries.length === 0 && <div className="card" style={{ padding: 18, fontSize: 12, color: "#6b7280" }}>เนเธกเนเธเธเธเธฃเธฐเธงเธฑเธ•เธดเธเธฒเธฃเธเธตเธขเนเธเนเธญเธกเธนเธฅ</div>}
         </div>
       </div>
 
-      <SectionTitle style={{ marginTop: 18 }}>ประวัติเอกสารและที่มา</SectionTitle>
-      {filteredDocs.length === 0 ? <div className="card" style={{ padding: 18, fontSize: 12, color: "#6b7280" }}>ไม่พบเอกสารตามคำค้น</div> : filteredDocs.slice(0, 30).map(doc => (
+      <SectionTitle style={{ marginTop: 18 }}>เธเธฃเธฐเธงเธฑเธ•เธดเน€เธญเธเธชเธฒเธฃเนเธฅเธฐเธ—เธตเนเธกเธฒ</SectionTitle>
+      {filteredDocs.length === 0 ? <div className="card" style={{ padding: 18, fontSize: 12, color: "#6b7280" }}>เนเธกเนเธเธเน€เธญเธเธชเธฒเธฃเธ•เธฒเธกเธเธณเธเนเธ</div> : filteredDocs.slice(0, 30).map(doc => (
         <div key={doc.id} className="card" style={{ padding: 14, marginBottom: 8 }}>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <span style={{ fontSize: 24 }}>{({ xlsx: "📊", csv: "📋", pdf: "📄" })[doc.ext] || "📎"}</span>
+            <span style={{ fontSize: 24 }}>{({ xlsx: "๐“", csv: "๐“", pdf: "๐“" })[doc.ext] || "๐“"}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: "#14532d", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</div>
               <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4, lineHeight: 1.6 }}>
-                ที่มา: <b>{doc.source}</b> · ผู้ส่ง: <b>{doc.owner}</b> · อ้างอิง: <b>{doc.reference}</b><br />
-                {doc.branchName} · {doc.month} · {doc.size} · อัปโหลด {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleString() : "-"}
+                เธ—เธตเนเธกเธฒ: <b>{doc.source}</b> ยท เธเธนเนเธชเนเธ: <b>{doc.owner}</b> ยท เธญเนเธฒเธเธญเธดเธ: <b>{doc.reference}</b><br />
+                {doc.branchName} ยท {doc.month} ยท {doc.size} ยท เธญเธฑเธเนเธซเธฅเธ” {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleString() : "-"}
               </div>
               {doc.description && <div style={{ fontSize: 11, color: "#166534", marginTop: 5 }}>{doc.description}</div>}
+              {doc.analysis?.evidence?.length > 0 && (
+                <details style={{ marginTop: 8 }}>
+                  <summary style={{ fontSize: 11, fontWeight: 800, color: "#166534", cursor: "pointer" }}>Show saved document evidence</summary>
+                  <div style={{ marginTop: 6, display: "grid", gap: 5 }}>
+                    {doc.analysis.evidence.slice(0, 8).map((item, index) => (
+                      <div key={`${doc.id}-evidence-${index}`} style={{ fontSize: 10, color: "#374151", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: 8, lineHeight: 1.45 }}>
+                        <b>{item.metric}</b>: {item.value} · row {item.row}<br />
+                        {item.text}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+              {doc.analysis?.preview && (
+                <details style={{ marginTop: 6 }}>
+                  <summary style={{ fontSize: 11, fontWeight: 800, color: "#166534", cursor: "pointer" }}>Show parsed preview</summary>
+                  <pre style={{ marginTop: 6, fontSize: 10, color: "#374151", background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: 8, whiteSpace: "pre-wrap", maxHeight: 180, overflowY: "auto" }}>{doc.analysis.preview}</pre>
+                </details>
+              )}
             </div>
           </div>
         </div>
@@ -1420,26 +1559,20 @@ export default function App() {
   const toastTimer = useRef(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
+    let unsubscribe = () => {};
 
-      if (!sessionData.session) {
+    const loadDashboard = async (firebaseUser) => {
+      const user = toAppUser(firebaseUser);
+
+      if (!user) {
         router.replace("/login");
         router.refresh();
+        setAuthLoading(false);
         return;
       }
 
-      const { data, error } = await supabase.auth.getUser();
-
-      if (error || !data.user) {
-        await supabase.auth.signOut();
-        router.replace("/login");
-        router.refresh();
-        return;
-      }
-
-      setCurrentUser(data.user);
-      const userLocalState = normalizeDashboardState(readLocalDashboardState(data.user.id));
+      setCurrentUser(user);
+      const userLocalState = normalizeDashboardState(readLocalDashboardState(user.id));
       const guestLocalState = normalizeDashboardState(readLocalDashboardState("guest"));
       const localState = chooseNewestDashboardState(userLocalState, guestLocalState);
       setBranches(localState.branches);
@@ -1447,7 +1580,7 @@ export default function App() {
       setYearlyStats(localState.yearlyStats);
       setEntriesLog(localState.entriesLog);
       setLoginHistory(localState.loginHistory);
-      setUserProfile({ email: data.user.email, id: data.user.id, ...localState.userProfile });
+      setUserProfile({ email: user.email, id: user.id, ...localState.userProfile });
 
       try {
         const response = await fetch("/api/dashboard", { cache: "no-store" });
@@ -1459,26 +1592,40 @@ export default function App() {
           setMonthlyCo2(normalized.monthlyCo2);
           setYearlyStats(normalized.yearlyStats);
           setEntriesLog(normalized.entriesLog);
-          setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...normalized.loginHistory].slice(0, 50));
-          setUserProfile({ email: data.user.email, id: data.user.id, ...normalized.userProfile });
+          setLoginHistory([{ at: new Date().toISOString(), email: user.email, userId: user.id, userAgent: navigator.userAgent }, ...normalized.loginHistory].slice(0, 50));
+          setUserProfile({ email: user.email, id: user.id, ...normalized.userProfile });
         } else {
           setDatabaseStatus("local");
-          setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...localState.loginHistory].slice(0, 50));
-          setUserProfile({ email: data.user.email, id: data.user.id, ...localState.userProfile });
+          setLoginHistory([{ at: new Date().toISOString(), email: user.email, userId: user.id, userAgent: navigator.userAgent }, ...localState.loginHistory].slice(0, 50));
+          setUserProfile({ email: user.email, id: user.id, ...localState.userProfile });
         }
       } catch (error) {
         console.warn("Dashboard load failed:", error);
         setDatabaseStatus("local");
-        setLoginHistory([{ at: new Date().toISOString(), email: data.user.email, userId: data.user.id, userAgent: navigator.userAgent }, ...localState.loginHistory].slice(0, 50));
-        setUserProfile({ email: data.user.email, id: data.user.id, ...localState.userProfile });
+        setLoginHistory([{ at: new Date().toISOString(), email: user.email, userId: user.id, userAgent: navigator.userAgent }, ...localState.loginHistory].slice(0, 50));
+        setUserProfile({ email: user.email, id: user.id, ...localState.userProfile });
       } finally {
         setDashboardLoaded(true);
+        setAuthLoading(false);
       }
-
-      setAuthLoading(false);
     };
 
-    checkAuth();
+    try {
+      const auth = getFirebaseAuth();
+      unsubscribe = onAuthStateChanged(auth, loadDashboard, async () => {
+        await signOut(auth);
+        router.replace("/login");
+        router.refresh();
+        setAuthLoading(false);
+      });
+    } catch (error) {
+      console.warn("Firebase auth failed:", error);
+      router.replace("/login");
+      router.refresh();
+      setAuthLoading(false);
+    }
+
+    return () => unsubscribe();
   }, [router]);
 
   useEffect(() => {
@@ -1568,7 +1715,7 @@ export default function App() {
       createdAt: new Date().toISOString()
     }]);
     const bn = BRANCHES_INIT.find(b => b.id === branchId)?.name || branchId;
-    showToast(`✅ อัปเดตข้อมูล ${bn} เรียบร้อย`);
+    showToast(`โ… เธญเธฑเธเน€เธ”เธ•เธเนเธญเธกเธนเธฅ ${bn} เน€เธฃเธตเธขเธเธฃเนเธญเธข`);
   }, [showToast, currentUser]);
 
   const resetOperationalData = useCallback(() => {
@@ -1576,7 +1723,7 @@ export default function App() {
     setMonthlyCo2(Array(12).fill(0));
     setYearlyStats({});
     setEntriesLog([]);
-    showToast("✅ รีเซ็ตข้อมูลการใช้งานและรายการที่คีย์ผิดเรียบร้อย");
+    showToast("โ… เธฃเธตเน€เธเนเธ•เธเนเธญเธกเธนเธฅเธเธฒเธฃเนเธเนเธเธฒเธเนเธฅเธฐเธฃเธฒเธขเธเธฒเธฃเธ—เธตเนเธเธตเธขเนเธเธดเธ”เน€เธฃเธตเธขเธเธฃเนเธญเธข");
   }, [showToast]);
 
   const resetAllDashboardData = useCallback(() => {
@@ -1586,16 +1733,16 @@ export default function App() {
     setEntriesLog([]);
     setLoginHistory([]);
     setUserProfile(currentUser?.email ? { email: currentUser.email, id: currentUser.id } : {});
-    showToast("✅ รีเซ็ตค่าข้อมูลทั้งหมดเรียบร้อย");
+    showToast("โ… เธฃเธตเน€เธเนเธ•เธเนเธฒเธเนเธญเธกเธนเธฅเธ—เธฑเนเธเธซเธกเธ”เน€เธฃเธตเธขเธเธฃเนเธญเธข");
   }, [showToast, currentUser]);
 
   const navItems = [
-    { id: "home", icon: "🏠", label: "หน้าหลัก" },
-    { id: "upload", icon: "📤", label: "Upload" },
-    { id: "analytics", icon: "📊", label: "Analytics" },
-    { id: "ranking", icon: "🏆", label: "Ranking" },
-    { id: "reports", icon: "📄", label: "Reports" },
-    { id: "settings", icon: "⚙️", label: "Settings" }
+    { id: "home", icon: "๐ ", label: "เธซเธเนเธฒเธซเธฅเธฑเธ" },
+    { id: "upload", icon: "๐“ค", label: "Upload" },
+    { id: "analytics", icon: "๐“", label: "Analytics" },
+    { id: "ranking", icon: "๐", label: "Ranking" },
+    { id: "reports", icon: "๐“", label: "Reports" },
+    { id: "settings", icon: "โ๏ธ", label: "Settings" }
   ];
 
   if (authLoading) {
@@ -1634,7 +1781,7 @@ export default function App() {
         ))}
       </nav>
 
-      <AIPanel open={aiOpen} onToggle={() => setAiOpen(p => !p)} branches={branches} />
+      <AIPanel open={aiOpen} onToggle={() => setAiOpen(p => !p)} branches={branches} entriesLog={entriesLog} />
       {modalBranchIdx !== null && <BranchModal b={branches[modalBranchIdx]} onClose={() => setModalBranchIdx(null)} onGoUpload={() => setPage("upload")} />}
       <Toast msg={toast.msg} show={toast.show} />
     </>

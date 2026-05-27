@@ -1,27 +1,19 @@
-import { createClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
+import { NextResponse } from "next/server";
+import { readDashboardState } from "@/lib/googleFirestore";
 
 export async function GET() {
-
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .limit(1)
-
-  if (error) {
+  try {
+    const data = await readDashboardState();
+    return NextResponse.json({
+      success: true,
+      source: "firestore",
+      data
+    });
+  } catch (error) {
     return NextResponse.json({
       success: false,
-      error: error.message
-    })
+      source: "firestore",
+      error: error.message || "Firestore test failed"
+    });
   }
-
-  return NextResponse.json({
-    success: true,
-    data
-  })
 }

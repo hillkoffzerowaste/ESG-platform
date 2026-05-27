@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { getFirebaseAuth } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { useRouter } from "next/navigation";
 
 export default function Register() {
@@ -10,15 +11,13 @@ export default function Register() {
   const [password, setPassword] = useState("");
 
   const register = async () => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (!error) {
+    try {
+      const auth = getFirebaseAuth();
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      await sendEmailVerification(credential.user);
       alert("Check email to confirm");
       router.push("/login");
-    } else {
+    } catch (error) {
       alert(error.message);
     }
   };

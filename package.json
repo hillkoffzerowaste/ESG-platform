@@ -6,9 +6,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.106.1",
     "exceljs": "^4.4.0",
+    "firebase": "^12.13.0",
     "next": "latest",
+    "pdf-parse": "^2.4.5",
     "react": "latest",
     "react-dom": "latest"
   }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { getFirebaseAuth } from "@/lib/firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
@@ -9,33 +10,29 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const check = async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
+    let unsubscribe = () => {};
 
-      if (!sessionData.session) {
-        router.replace("/login");
-        router.refresh();
+    try {
+      const auth = getFirebaseAuth();
+      unsubscribe = onAuthStateChanged(auth, user => {
+        if (!user) {
+          router.replace("/login");
+          router.refresh();
+        }
         setLoading(false);
-        return;
-      }
+      });
+    } catch {
+      router.replace("/login");
+      router.refresh();
+      setLoading(false);
+    }
 
-      const { data, error } = await supabase.auth.getUser();
-
-      if (error || !data.user) {
-        await supabase.auth.signOut();
-        router.replace("/login");
-        router.refresh();
-        setLoading(false);
-      } else {
-        setLoading(false);
-      }
-    };
-
-    check();
+    return () => unsubscribe();
   }, [router]);
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    const auth = getFirebaseAuth();
+    await signOut(auth);
     router.replace("/login");
     router.refresh();
   };
