@@ -11,13 +11,16 @@ export async function GET() {
       data: state
     });
   } catch (error) {
-    return NextResponse.json({
-      success: true,
-      source: "local",
-      savedAt: null,
-      data: null,
-      warning: error.message || "Dashboard read failed"
-    });
+    return NextResponse.json(
+      {
+        success: false,
+        source: "firestore",
+        savedAt: null,
+        data: null,
+        error: error.message || "Dashboard read failed"
+      },
+      { status: 500 }
+    );
   }
 }
 

@@ -151,38 +151,7 @@ const getWasteItems = entry => [
   { name: "เธเธขเธฐเธญเธฑเธเธ•เธฃเธฒเธข/เธเธฑเธเธเธฅเธ", qty: entry.waste?.hazard || 0, unit: "เธเธ." }
 ];
 
-const dashboardStorageKey = userId => `hillkoff-dashboard-state:${userId || "guest"}`;
 const DATA_ADMIN_EMAIL = "online_marketing@hillkoff.com";
-
-const readLocalDashboardState = userId => {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(dashboardStorageKey(userId));
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
-
-const writeLocalDashboardState = (userId, state) => {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(dashboardStorageKey(userId), JSON.stringify({
-      ...state,
-      savedAt: new Date().toISOString()
-    }));
-  } catch (error) {
-    console.warn("Local dashboard save failed:", error);
-  }
-};
-
-const chooseNewestDashboardState = (localState, remoteState) => {
-  if (!remoteState?.savedAt) return localState;
-  if (!localState?.savedAt) return remoteState;
-  return new Date(localState.savedAt).getTime() > new Date(remoteState.savedAt).getTime()
-    ? localState
-    : remoteState;
-};
 
 const projectWhitepaper = `
   <section class="whitepaper">
@@ -719,6 +688,7 @@ function AIPanel({ open, onToggle, branches, entriesLog }) {
 
 function PageHome({ branches, monthlyCo2, onBranchClick, onGoUpload }) {
   const totals = branches.reduce((acc, b) => ({ co2: +(acc.co2 + b.co2).toFixed(4), elec: acc.elec + b.elec, water: acc.water + b.water, fuel: acc.fuel + b.fuel, entries: acc.entries + b.entries }), { co2: 0, elec: 0, water: 0, fuel: 0, entries: 0 });
+  const currentYear = new Date().getFullYear();
   const hasData = branches.some(b => b.hasData);
   return (
     <div className="fade-up">
@@ -762,7 +732,7 @@ function PageHome({ branches, monthlyCo2, onBranchClick, onGoUpload }) {
         <div>
           <SectionTitle>Carbon เธฃเธฒเธขเน€เธ”เธทเธญเธ</SectionTitle>
           <div className="card" style={{ padding: 18 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>Carbon Emission 2024</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>Carbon Emission {currentYear}</div>
             <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>tCOโe เธฃเธฒเธขเน€เธ”เธทเธญเธ</div>
             <MiniBarChart data={monthlyCo2} labels={MONTHS} color="#16a34a" />
           </div>
@@ -1192,6 +1162,7 @@ function PageUpload({ branches, onSave, showToast }) {
 function PageAnalytics({ branches, monthlyCo2, entriesLog }) {
   const hasData = branches.some(b => b.hasData);
   const totals = branches.reduce((acc, b) => ({ co2: +(acc.co2 + b.co2).toFixed(4), elec: acc.elec + b.elec, water: acc.water + b.water, fuel: acc.fuel + b.fuel, entries: acc.entries + b.entries }), { co2: 0, elec: 0, water: 0, fuel: 0, entries: 0 });
+  const currentYear = new Date().getFullYear();
   const topMaterialsByMonth = groupTopByMonth(entriesLog, entry => entry.materials || []);
   const topWasteByMonth = groupTopByMonth(entriesLog, getWasteItems);
   const latestMonthIdx = monthlyCo2.reduce((latest, value, idx) => value > 0 ? idx : latest, -1);
@@ -1216,7 +1187,7 @@ function PageAnalytics({ branches, monthlyCo2, entriesLog }) {
         </div>
         {!hasData ? <div style={{ textAlign: "center", padding: 24, color: "#6b7280" }}><div style={{ fontSize: 36 }}>๐ค–</div><div style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>เธขเธฑเธเนเธกเนเธกเธตเธเนเธญเธกเธนเธฅเธชเธณเธซเธฃเธฑเธเธเธฒเธ”เธเธฒเธฃเธ“เน</div><div style={{ fontSize: 12 }}>เธเธฃเธญเธเธเนเธญเธกเธนเธฅเธซเธฃเธทเธญเธญเธฑเธเนเธซเธฅเธ”เนเธเธฅเนเธญเธขเนเธฒเธเธเนเธญเธข 1 เธฃเธฒเธขเธเธฒเธฃ</div></div> : (
           <>
-            <div className="metric-grid">{forecasts.map(fc => <div key={fc.month} style={{ background: "#f0fdf4", borderRadius: 12, padding: 10, textAlign: "center", border: "1px solid #d1fae5" }}><div style={{ fontSize: 10, color: "#6b7280" }}>{fc.month} 2024</div><div style={{ fontSize: 16, fontWeight: 800, color: "#166534" }}>{fc.val}</div><div style={{ fontSize: 9, color: "#6b7280" }}>tCOโe</div><div style={{ fontSize: 9, color: "#ef4444", fontWeight: 700 }}>โ–ฒ {fc.trend.toFixed(1)}%</div></div>)}</div>
+            <div className="metric-grid">{forecasts.map(fc => <div key={fc.month} style={{ background: "#f0fdf4", borderRadius: 12, padding: 10, textAlign: "center", border: "1px solid #d1fae5" }}><div style={{ fontSize: 10, color: "#6b7280" }}>{fc.month} {currentYear}</div><div style={{ fontSize: 16, fontWeight: 800, color: "#166534" }}>{fc.val}</div><div style={{ fontSize: 9, color: "#6b7280" }}>tCOโe</div><div style={{ fontSize: 9, color: "#ef4444", fontWeight: 700 }}>โ–ฒ {fc.trend.toFixed(1)}%</div></div>)}</div>
             <div style={{ background: "rgba(124,58,237,.08)", border: "1px solid rgba(124,58,237,.2)", borderRadius: 12, padding: 12, marginTop: 10 }}><div style={{ fontSize: 11, fontWeight: 700, color: "#7c3aed", marginBottom: 6 }}>๐’ก AI Insight</div><div style={{ fontSize: 11, lineHeight: 1.6, color: "#6b7280" }}>เธเธฒเธเธเนเธญเธกเธนเธฅ {totals.entries} เธฃเธฒเธขเธเธฒเธฃ โ€” Carbon Emission เธฃเธงเธก {totals.co2} tCOโe เนเธเธฐเธเธณเธ•เธดเธ”เธ•เธฒเธกเธเธฒเธฃเนเธเนเนเธเธเนเธฒเน€เธเนเธเธซเธฅเธฑเธ เน€เธเธฃเธฒเธฐเน€เธเนเธเนเธซเธฅเนเธ Scope 2 เธ—เธตเนเนเธซเธเนเธ—เธตเนเธชเธธเธ”</div></div>
           </>
         )}
@@ -1427,7 +1398,7 @@ function PageSettings({ user, userProfile, loginHistory, entriesLog, databaseSta
           {databaseStatus === "connected" ? "โ… Database connected" : databaseStatus === "checking" ? "โณ เธเธณเธฅเธฑเธเธ•เธฃเธงเธเธชเธญเธ database" : "โ ๏ธ เธเธฑเธเธ—เธถเธเธชเธณเธฃเธญเธเนเธเน€เธเธฃเธทเนเธญเธ"}
         </div>
         <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>
-          {databaseStatus === "connected" ? "เธเนเธญเธกเธนเธฅเธ–เธนเธเธชเนเธเน€เธเนเธฒ Firestore เนเธฅเนเธง เนเธฅเธฐเธขเธฑเธเธกเธตเธชเธณเน€เธเธฒเธชเธณเธฃเธญเธเนเธ browser" : "เธฃเธฐเธเธเธขเธฑเธเนเธเนเธเธฒเธเนเธ”เนเนเธฅเธฐเธเนเธญเธกเธนเธฅเนเธกเนเธซเธฒเธขเธซเธฅเธฑเธ refresh เนเธ browser เธเธตเน เนเธ•เนเธเธงเธฃเธ•เธฃเธงเธเธเนเธฒ GOOGLE_SERVICE_ACCOUNT_JSON / GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 เธเธ Vercel เน€เธเธทเนเธญเนเธซเนเธชเนเธเน€เธเนเธฒ database เธเธฅเธฒเธ"}
+          {databaseStatus === "connected" ? "Data is saved to Firestore. Local browser storage is not used for dashboard persistence." : "Firestore is not connected. Check GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_SERVICE_ACCOUNT_JSON_BASE64."}
         </div>
       </div>
       <FormCard title="๐‘ค เธเนเธญเธกเธนเธฅเธเธนเนเนเธเนเธเธฒเธ" sub="เธเนเธญเธกเธนเธฅเธเธตเนเนเธเนเธเธฃเธฐเธเธญเธเธเธฃเธฐเธงเธฑเธ•เธดเนเธฅเธฐเธฃเธฒเธขเธเธฒเธเธ เธฒเธขเนเธเธฃเธฐเธเธ">
@@ -1572,22 +1543,24 @@ export default function App() {
       }
 
       setCurrentUser(user);
-      const userLocalState = normalizeDashboardState(readLocalDashboardState(user.id));
-      const guestLocalState = normalizeDashboardState(readLocalDashboardState("guest"));
-      const localState = chooseNewestDashboardState(userLocalState, guestLocalState);
-      setBranches(localState.branches);
-      setMonthlyCo2(localState.monthlyCo2);
-      setYearlyStats(localState.yearlyStats);
-      setEntriesLog(localState.entriesLog);
-      setLoginHistory(localState.loginHistory);
-      setUserProfile({ email: user.email, id: user.id, ...localState.userProfile });
+      const emptyState = normalizeDashboardState(null);
+      setBranches(emptyState.branches);
+      setMonthlyCo2(emptyState.monthlyCo2);
+      setYearlyStats(emptyState.yearlyStats);
+      setEntriesLog(emptyState.entriesLog);
+      setLoginHistory(emptyState.loginHistory);
+      setUserProfile({ email: user.email, id: user.id, ...emptyState.userProfile });
 
       try {
         const response = await fetch("/api/dashboard", { cache: "no-store" });
         const saved = await response.json();
-        if (response.ok && saved?.data) {
+        if (!response.ok) {
+          throw new Error(saved?.error || "Dashboard read failed");
+        }
+
+        if (saved?.data) {
           setDatabaseStatus("connected");
-          const normalized = chooseNewestDashboardState(localState, normalizeDashboardState(saved.data));
+          const normalized = normalizeDashboardState(saved.data);
           setBranches(normalized.branches);
           setMonthlyCo2(normalized.monthlyCo2);
           setYearlyStats(normalized.yearlyStats);
@@ -1595,15 +1568,15 @@ export default function App() {
           setLoginHistory([{ at: new Date().toISOString(), email: user.email, userId: user.id, userAgent: navigator.userAgent }, ...normalized.loginHistory].slice(0, 50));
           setUserProfile({ email: user.email, id: user.id, ...normalized.userProfile });
         } else {
-          setDatabaseStatus("local");
-          setLoginHistory([{ at: new Date().toISOString(), email: user.email, userId: user.id, userAgent: navigator.userAgent }, ...localState.loginHistory].slice(0, 50));
-          setUserProfile({ email: user.email, id: user.id, ...localState.userProfile });
+          setDatabaseStatus("connected");
+          setLoginHistory([{ at: new Date().toISOString(), email: user.email, userId: user.id, userAgent: navigator.userAgent }]);
+          setUserProfile({ email: user.email, id: user.id, ...emptyState.userProfile });
         }
       } catch (error) {
         console.warn("Dashboard load failed:", error);
-        setDatabaseStatus("local");
-        setLoginHistory([{ at: new Date().toISOString(), email: user.email, userId: user.id, userAgent: navigator.userAgent }, ...localState.loginHistory].slice(0, 50));
-        setUserProfile({ email: user.email, id: user.id, ...localState.userProfile });
+        setDatabaseStatus("error");
+        setLoginHistory([{ at: new Date().toISOString(), email: user.email, userId: user.id, userAgent: navigator.userAgent }]);
+        setUserProfile({ email: user.email, id: user.id, ...emptyState.userProfile });
       } finally {
         setDashboardLoaded(true);
         setAuthLoading(false);
@@ -1631,8 +1604,6 @@ export default function App() {
   useEffect(() => {
     if (!dashboardLoaded) return;
     const snapshot = { branches, monthlyCo2, yearlyStats, entriesLog, loginHistory, userProfile };
-    writeLocalDashboardState(currentUser?.id, snapshot);
-    writeLocalDashboardState("guest", snapshot);
     const timer = setTimeout(async () => {
       try {
         const response = await fetch("/api/dashboard", {
@@ -1640,10 +1611,10 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(snapshot)
         });
-        setDatabaseStatus(response.ok ? "connected" : "local");
+        setDatabaseStatus(response.ok ? "connected" : "error");
       } catch (error) {
         console.warn("Dashboard save failed:", error);
-        setDatabaseStatus("local");
+        setDatabaseStatus("error");
       }
     }, 500);
 
