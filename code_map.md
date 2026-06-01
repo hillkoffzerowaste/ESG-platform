@@ -32,6 +32,24 @@ Quick map for future fixes in the Hillkoff Zero Waste Analytics app.
 - `app/register/page.js` - Firebase email/password registration and email verification.
 - `app/auth/callback/page.js` - redirect callback support.
 
+## Firebase Cloud Functions OTP
+
+- `firebase.json` - points Firebase Functions to `functions/`.
+- `functions/package.json` - Cloud Functions dependencies and deploy scripts.
+- `functions/index.js` - OTP request and verification endpoints.
+- `requestOtp`:
+  - Verifies Firebase ID token from `Authorization: Bearer <token>`.
+  - Uses token email as source of truth.
+  - Rejects users outside `@hillkoff.com` with HTTP 403.
+  - Generates 6-digit OTP with 5-minute TTL.
+  - Stores hash in Firestore `otpChallenges/{uid}`.
+  - Sends via Nodemailer when `SMTP_URL` is set; otherwise logs a simulation.
+- `verifyOtp`:
+  - Verifies Firebase ID token again.
+  - Checks 6-digit code, expiry, consumed state, and max attempts.
+  - Sets custom claims `hillkoffOtpVerified` and `hillkoffOtpVerifiedAt`.
+  - Frontend should refresh the ID token after success.
+
 ## Gemini AI
 
 - `lib/gemini.js` - shared Gemini API key lookup, model fallback list, and request helper.
@@ -75,6 +93,10 @@ Quick map for future fixes in the Hillkoff Zero Waste Analytics app.
 - Gemini:
   - `GEMINI_API_KEY`
   - `GEMINI_MODEL`
+- Cloud Functions OTP secrets:
+  - `OTP_HASH_SECRET`
+  - Optional `SMTP_URL`
+  - Optional `SMTP_FROM`
 
 ## Useful Checks
 
@@ -86,3 +108,6 @@ Quick map for future fixes in the Hillkoff Zero Waste Analytics app.
   - `GET /api/firebase-health`
 - Build:
   - `npm run build`
+- Functions syntax:
+  - `cd functions`
+  - `npm run lint`

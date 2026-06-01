@@ -36,6 +36,24 @@ Open `http://localhost:3000`.
 - `GOOGLE_API_KEY` and `GOOGLE_GENERATIVE_AI_API_KEY` are accepted as fallback names, but `GEMINI_API_KEY` is preferred.
 - Use `/api/ai-health` to verify that the key and selected model can reach Gemini.
 
+## Firebase Cloud Functions OTP
+
+- `functions/index.js` exposes `requestOtp` and `verifyOtp`.
+- Both endpoints require `Authorization: Bearer <Firebase ID token>` from the frontend Google login.
+- `requestOtp` rejects non-`@hillkoff.com` users with HTTP 403, then creates a 6-digit OTP that expires in 5 minutes.
+- OTP records are stored in Firestore collection `otpChallenges` as a hash, not as plain text.
+- `verifyOtp` checks the code, deletes expired challenges, limits failed attempts, and sets Firebase custom claims:
+  - `hillkoffOtpVerified: true`
+  - `hillkoffOtpVerifiedAt: <unix seconds>`
+
+Set Cloud Functions secrets:
+
+```powershell
+firebase functions:secrets:set OTP_HASH_SECRET
+```
+
+`SMTP_URL` and `SMTP_FROM` are optional environment variables for Nodemailer. If `SMTP_URL` is blank, the function logs the OTP instead of sending email. For production, use an SMTP URL supported by Nodemailer.
+
 ## Files
 
 - `app/page.jsx` - main dashboard UI.
@@ -46,6 +64,7 @@ Open `http://localhost:3000`.
 - `app/api/gemini/route.js` - compatibility Gemini API route.
 - `app/api/ai-health/route.js` - Gemini API health check.
 - `app/api/firebase-health/route.js` - Firebase/Firestore health check.
+- `functions/index.js` - Firebase Cloud Functions for Hillkoff-only OTP request/verification.
 - `lib/firebase.js` - Firebase client setup.
 - `lib/googleFirestore.js` - Firestore REST helper.
 - `lib/gemini.js` - shared Gemini API helper and model fallback logic.
