@@ -116,7 +116,8 @@ async function sendOtpEmail({ email, otp }) {
 
 exports.requestOtp = onRequest(
   {
-    region: "asia-southeast1"
+    region: "asia-southeast1",
+    invoker: "public"
   },
   async (req, res) => {
     setCors(req, res);
@@ -154,7 +155,8 @@ exports.requestOtp = onRequest(
 
 exports.verifyOtp = onRequest(
   {
-    region: "asia-southeast1"
+    region: "asia-southeast1",
+    invoker: "public"
   },
   async (req, res) => {
     setCors(req, res);
