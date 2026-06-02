@@ -1,7 +1,6 @@
 const crypto = require("node:crypto");
 const admin = require("firebase-admin");
 const { onRequest } = require("firebase-functions/v2/https");
-const { defineSecret } = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const nodemailer = require("nodemailer");
 
@@ -12,10 +11,16 @@ const ORGANIZATION_DOMAIN = "@hillkoff.com";
 const OTP_COLLECTION = "otpChallenges";
 const ORGANIZATION_ONLY_MESSAGE = "\u0e23\u0e30\u0e1a\u0e1a\u0e19\u0e35\u0e49\u0e2d\u0e19\u0e38\u0e0d\u0e32\u0e15\u0e40\u0e09\u0e1e\u0e32\u0e30\u0e04\u0e19\u0e43\u0e19\u0e2d\u0e07\u0e04\u0e4c\u0e01\u0e23 @hillkoff.com \u0e40\u0e17\u0e48\u0e32\u0e19\u0e31\u0e49\u0e19";
 
-const otpHashSecret = defineSecret("OTP_HASH_SECRET");
-
 function isHillkoffEmail(email) {
   return typeof email === "string" && email.trim().toLowerCase().endsWith(ORGANIZATION_DOMAIN);
+}
+
+function getOtpHashSecret() {
+  const secret = process.env.OTP_HASH_SECRET;
+  if (!secret) {
+    throw new Error("Missing OTP_HASH_SECRET");
+  }
+  return secret;
 }
 
 function json(res, status, payload) {
@@ -58,7 +63,7 @@ function generateOtp() {
 
 function hashOtp({ uid, email, otp }) {
   return crypto
-    .createHmac("sha256", otpHashSecret.value())
+    .createHmac("sha256", getOtpHashSecret())
     .update(`${uid}:${email}:${otp}`)
     .digest("hex");
 }
@@ -111,8 +116,7 @@ async function sendOtpEmail({ email, otp }) {
 
 exports.requestOtp = onRequest(
   {
-    region: "asia-southeast1",
-    secrets: [otpHashSecret]
+    region: "asia-southeast1"
   },
   async (req, res) => {
     setCors(req, res);
@@ -150,8 +154,7 @@ exports.requestOtp = onRequest(
 
 exports.verifyOtp = onRequest(
   {
-    region: "asia-southeast1",
-    secrets: [otpHashSecret]
+    region: "asia-southeast1"
   },
   async (req, res) => {
     setCors(req, res);

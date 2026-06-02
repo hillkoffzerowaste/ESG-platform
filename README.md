@@ -49,13 +49,9 @@ Open `http://localhost:3000`.
   - `hillkoffOtpVerifiedAt: <unix seconds>`
 - `app/login/page.js` calls these functions after Google login and only enters the dashboard after OTP verification.
 
-Set Cloud Functions secrets:
+Set Cloud Functions environment variables:
 
-```powershell
-firebase functions:secrets:set OTP_HASH_SECRET
-```
-
-`SMTP_URL` and `SMTP_FROM` are optional environment variables for Nodemailer. If `SMTP_URL` is blank, the function logs the OTP instead of sending email. For production, use an SMTP URL supported by Nodemailer.
+`OTP_HASH_SECRET` is required. `SMTP_URL` and `SMTP_FROM` are optional environment variables for Nodemailer. If `SMTP_URL` is blank, the function logs the OTP instead of sending email. For production, use an SMTP URL supported by Nodemailer.
 
 For local setup, copy `functions/.env.example` to `functions/.env` and fill in SMTP values. `functions/.env` is ignored by Git.
 
