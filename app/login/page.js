@@ -1,19 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getFirebaseAuth, getGoogleProvider } from "@/lib/firebase";
 import { hasOtpClaim, requestOtpForUser, verifyOtpForUser } from "@/lib/otpClient";
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 
+function getFriendlyAuthError(error) {
+  if (error?.code === "auth/unauthorized-domain") {
+    return [
+      "Firebase has not authorized this domain for Google login.",
+      "Open Firebase Console > Authentication > Settings > Authorized domains and add the domain currently opening this app.",
+      "Examples: localhost, esg-hillkoff.web.app, esg-hillkoff.firebaseapp.com, or your custom production domain."
+    ].join(" ");
+  }
+
+  if (error?.message?.startsWith("Cannot reach")) {
+    return `${error.message} If this is production, deploy Firebase Functions first.`;
+  }
+
+  return error?.message || "Login failed";
+}
+
 export default function LoginPage() {
   const router = useRouter();
+  const autoOtpSentRef = useRef(false);
   const [firebaseUser, setFirebaseUser] = useState(null);
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState("google");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  const sendOtp = useCallback(async (user) => {
+    const targetUser = user || firebaseUser;
+    if (!targetUser) throw new Error("Please sign in with Google first.");
+
+    const result = await requestOtpForUser(targetUser);
+    setFirebaseUser(targetUser);
+    setStep("otp");
+    setNotice(`OTP sent to ${result.email}. It expires in 5 minutes.`);
+    return result;
+  }, [firebaseUser]);
 
   useEffect(() => {
     let unsubscribe = () => {};
@@ -31,25 +59,27 @@ export default function LoginPage() {
         }
 
         setStep("otp");
-        setNotice(`Signed in as ${user.email}. Request an OTP to continue.`);
+        if (autoOtpSentRef.current) return;
+
+        autoOtpSentRef.current = true;
+        setLoading(true);
+        setError("");
+
+        try {
+          await sendOtp(user);
+        } catch (error) {
+          setNotice(`Signed in as ${user.email}. Please resend the OTP to continue.`);
+          setError(getFriendlyAuthError(error));
+        } finally {
+          setLoading(false);
+        }
       });
     } catch (error) {
-      setError(error.message);
+      setError(getFriendlyAuthError(error));
     }
 
     return () => unsubscribe();
-  }, [router]);
-
-  const sendOtp = async (user) => {
-    const targetUser = user || firebaseUser;
-    if (!targetUser) throw new Error("Please sign in with Google first.");
-
-    const result = await requestOtpForUser(targetUser);
-    setFirebaseUser(targetUser);
-    setStep("otp");
-    setNotice(`OTP sent to ${result.email}. It expires in 5 minutes.`);
-    return result;
-  };
+  }, [router, sendOtp]);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -59,9 +89,14 @@ export default function LoginPage() {
     try {
       const auth = getFirebaseAuth();
       const credential = await signInWithPopup(auth, getGoogleProvider());
-      await sendOtp(credential.user);
+      setFirebaseUser(credential.user);
+
+      if (!(await hasOtpClaim(credential.user)) && !autoOtpSentRef.current) {
+        autoOtpSentRef.current = true;
+        await sendOtp(credential.user);
+      }
     } catch (error) {
-      setError(error.message);
+      setError(getFriendlyAuthError(error));
       try {
         await signOut(getFirebaseAuth());
       } catch {}

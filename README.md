@@ -27,6 +27,7 @@ Open `http://localhost:3000`.
 - Dashboard persistence uses Firestore through `lib/googleFirestore.js`.
 - Enable the Google provider in Firebase Authentication before testing login flows.
 - Login uses Google sign-in only. Email/password login is not used.
+- Add every app host to Firebase Authentication > Settings > Authorized domains. Common values are `localhost`, `esg-hillkoff.web.app`, `esg-hillkoff.firebaseapp.com`, and any custom production domain.
 - `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` can be used instead of `GOOGLE_SERVICE_ACCOUNT_JSON` for server-side Firestore access.
 - Dashboard data is not persisted with `localStorage`; reads and writes go through `/api/dashboard` backed by Firestore.
 - Use `/api/firebase-health` to verify Firestore read access, and `POST /api/firebase-health` to verify a harmless write to `_health/connection`.

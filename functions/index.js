@@ -10,6 +10,7 @@ admin.initializeApp();
 const OTP_TTL_MS = 5 * 60 * 1000;
 const ORGANIZATION_DOMAIN = "@hillkoff.com";
 const OTP_COLLECTION = "otpChallenges";
+const ORGANIZATION_ONLY_MESSAGE = "\u0e23\u0e30\u0e1a\u0e1a\u0e19\u0e35\u0e49\u0e2d\u0e19\u0e38\u0e0d\u0e32\u0e15\u0e40\u0e09\u0e1e\u0e32\u0e30\u0e04\u0e19\u0e43\u0e19\u0e2d\u0e07\u0e04\u0e4c\u0e01\u0e23 @hillkoff.com \u0e40\u0e17\u0e48\u0e32\u0e19\u0e31\u0e49\u0e19";
 
 const otpHashSecret = defineSecret("OTP_HASH_SECRET");
 
@@ -123,7 +124,7 @@ exports.requestOtp = onRequest(
 
       if (!isHillkoffEmail(user.email)) {
         return json(res, 403, {
-          error: "ระบบนี้อนุญาตเฉพาะคนในองค์กร @hillkoff.com เท่านั้น"
+          error: ORGANIZATION_ONLY_MESSAGE
         });
       }
 
@@ -163,7 +164,7 @@ exports.verifyOtp = onRequest(
 
       if (!isHillkoffEmail(user.email)) {
         return json(res, 403, {
-          error: "ระบบนี้อนุญาตเฉพาะคนในองค์กร @hillkoff.com เท่านั้น"
+          error: ORGANIZATION_ONLY_MESSAGE
         });
       }
 
