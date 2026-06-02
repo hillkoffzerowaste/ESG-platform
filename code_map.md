@@ -28,7 +28,7 @@ Quick map for future fixes in the Hillkoff Zero Waste Analytics app.
 - `app/api/dashboard/route.js` - Firestore-backed dashboard read/write API.
 - `app/api/test/route.js` - simple Firestore read test.
 - `app/api/firebase-health/route.js` - Firestore config/read health check; `POST` writes only to `_health/connection`.
-- `app/login/page.js` - Firebase email/password and Google sign-in.
+- `app/login/page.js` - Google-only login and OTP verification UI.
 - `app/register/page.js` - Firebase email/password registration and email verification.
 - `app/auth/callback/page.js` - redirect callback support.
 
@@ -49,6 +49,8 @@ Quick map for future fixes in the Hillkoff Zero Waste Analytics app.
   - Checks 6-digit code, expiry, consumed state, and max attempts.
   - Sets custom claims `hillkoffOtpVerified` and `hillkoffOtpVerifiedAt`.
   - Frontend should refresh the ID token after success.
+- `lib/otpClient.js` - frontend helper for building Cloud Functions URLs, requesting OTP, verifying OTP, and reading the OTP custom claim.
+- `app/page.jsx` - dashboard guard redirects users without `hillkoffOtpVerified` back to `/login`.
 
 ## Gemini AI
 
@@ -87,6 +89,9 @@ Quick map for future fixes in the Hillkoff Zero Waste Analytics app.
   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
   - `NEXT_PUBLIC_FIREBASE_APP_ID`
   - `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID`
+  - `NEXT_PUBLIC_FIREBASE_FUNCTIONS_REGION`
+  - Optional `NEXT_PUBLIC_REQUEST_OTP_URL`
+  - Optional `NEXT_PUBLIC_VERIFY_OTP_URL`
 - Firestore server access:
   - `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` or `GOOGLE_SERVICE_ACCOUNT_JSON`
   - `GOOGLE_FIRESTORE_PROJECT_ID` only if overriding the service account project.

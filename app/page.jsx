@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getFirebaseAuth, toAppUser } from "@/lib/firebase";
+import { hasOtpClaim } from "@/lib/otpClient";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 const MAT_CATALOG = {
@@ -1536,6 +1537,13 @@ export default function App() {
       const user = toAppUser(firebaseUser);
 
       if (!user) {
+        router.replace("/login");
+        router.refresh();
+        setAuthLoading(false);
+        return;
+      }
+
+      if (!(await hasOtpClaim(firebaseUser))) {
         router.replace("/login");
         router.refresh();
         setAuthLoading(false);

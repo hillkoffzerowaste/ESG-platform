@@ -25,7 +25,8 @@ Open `http://localhost:3000`.
 
 - Client auth uses Firebase Authentication from `lib/firebase.js`.
 - Dashboard persistence uses Firestore through `lib/googleFirestore.js`.
-- Enable Email/Password and Google providers in Firebase Authentication before testing login flows.
+- Enable the Google provider in Firebase Authentication before testing login flows.
+- Login uses Google sign-in only. Email/password login is not used.
 - `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` can be used instead of `GOOGLE_SERVICE_ACCOUNT_JSON` for server-side Firestore access.
 - Dashboard data is not persisted with `localStorage`; reads and writes go through `/api/dashboard` backed by Firestore.
 - Use `/api/firebase-health` to verify Firestore read access, and `POST /api/firebase-health` to verify a harmless write to `_health/connection`.
@@ -45,6 +46,7 @@ Open `http://localhost:3000`.
 - `verifyOtp` checks the code, deletes expired challenges, limits failed attempts, and sets Firebase custom claims:
   - `hillkoffOtpVerified: true`
   - `hillkoffOtpVerifiedAt: <unix seconds>`
+- `app/login/page.js` calls these functions after Google login and only enters the dashboard after OTP verification.
 
 Set Cloud Functions secrets:
 
@@ -54,10 +56,12 @@ firebase functions:secrets:set OTP_HASH_SECRET
 
 `SMTP_URL` and `SMTP_FROM` are optional environment variables for Nodemailer. If `SMTP_URL` is blank, the function logs the OTP instead of sending email. For production, use an SMTP URL supported by Nodemailer.
 
+For local setup, copy `functions/.env.example` to `functions/.env` and fill in SMTP values. `functions/.env` is ignored by Git.
+
 ## Files
 
 - `app/page.jsx` - main dashboard UI.
-- `app/login/page.js` - Firebase email/password and Google login.
+- `app/login/page.js` - Google-only login and OTP verification UI.
 - `app/register/page.js` - Firebase email/password registration.
 - `app/api/dashboard/route.js` - dashboard read/write API backed by Firestore.
 - `app/api/ai-chat/route.js` - primary Gemini-backed AI chat route.
@@ -65,6 +69,7 @@ firebase functions:secrets:set OTP_HASH_SECRET
 - `app/api/ai-health/route.js` - Gemini API health check.
 - `app/api/firebase-health/route.js` - Firebase/Firestore health check.
 - `functions/index.js` - Firebase Cloud Functions for Hillkoff-only OTP request/verification.
+- `lib/otpClient.js` - frontend helper for calling OTP Cloud Functions.
 - `lib/firebase.js` - Firebase client setup.
 - `lib/googleFirestore.js` - Firestore REST helper.
 - `lib/gemini.js` - shared Gemini API helper and model fallback logic.
