@@ -1,4 +1,5 @@
 import { generateGeminiWithFallback, hasGeminiApiKey } from "@/lib/gemini";
+import { HILLKOFF_BRANCHES } from "@/lib/esgMasterData";
 
 export async function POST(req) {
   try {
@@ -11,7 +12,13 @@ export async function POST(req) {
       );
     }
 
-    const result = await generateGeminiWithFallback({ message, context });
+    const result = await generateGeminiWithFallback({
+      message,
+      context: {
+        masterBranches: HILLKOFF_BRANCHES,
+        ...(context || {})
+      }
+    });
     return Response.json(result);
   } catch (error) {
     return Response.json({ error: error.message || "Unexpected error" }, { status: 500 });
