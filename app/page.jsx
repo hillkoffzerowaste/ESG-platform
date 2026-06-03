@@ -1453,7 +1453,7 @@ function PageReports({ branches, monthlyCo2, yearlyStats, entriesLog, showToast 
   );
 }
 
-function PageSettings({ user, userProfile, loginHistory, entriesLog, databaseStatus, onProfileChange, onResetOperationalData, onResetAllData }) {
+function PageSettings({ user, userProfile, loginHistory, entriesLog, databaseStatus, onProfileChange, onResetOperationalData, onResetAllData, onLogout }) {
   const [query, setQuery] = useState("");
   const isDataAdmin = (user?.email || "").trim().toLowerCase() === DATA_ADMIN_EMAIL;
   const documents = entriesLog.flatMap(entry => (entry.documents || []).map(doc => ({
@@ -1492,6 +1492,7 @@ function PageSettings({ user, userProfile, loginHistory, entriesLog, databaseSta
           <FormGroup label="ชื่อผู้ใช้งาน"><input className="input" value={userProfile.name || ""} onChange={e => onProfileChange({ ...userProfile, name: e.target.value })} placeholder="ชื่อ-นามสกุล" /></FormGroup>
           <FormGroup label="แผนก / บทบาท"><input className="input" value={userProfile.role || ""} onChange={e => onProfileChange({ ...userProfile, role: e.target.value })} placeholder="เช่น Sustainability / Admin" /></FormGroup>
         </div>
+        <button onClick={onLogout} style={{ marginTop: 12, width: "100%", padding: 12, border: "1px solid #fecaca", borderRadius: 12, background: "#fef2f2", color: "#b91c1c", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Logout</button>
       </FormCard>
 
       <div className="card" style={{ padding: 14, marginBottom: 14, borderColor: isDataAdmin ? "#bbf7d0" : "#e5e7eb", background: isDataAdmin ? "#f0fdf4" : "#f9fafb" }}>
@@ -1710,11 +1711,49 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [branches, monthlyCo2, yearlyStats, entriesLog, loginHistory, userProfile, dashboardLoaded, currentUser]);
 
+  useEffect(() => {
+    if (!dashboardLoaded || !currentUser) return;
+    let cancelled = false;
+    const checkFirestoreHealth = async () => {
+      try {
+        const response = await fetch("/api/firebase-health", { cache: "no-store" });
+        const health = await response.json();
+        if (!cancelled) {
+          setDatabaseStatus(response.ok && health?.firestore?.connected ? "connected" : "error");
+        }
+      } catch (error) {
+        console.warn("Firestore health check failed:", error);
+        if (!cancelled) setDatabaseStatus("error");
+      }
+    };
+
+    checkFirestoreHealth();
+    const interval = setInterval(checkFirestoreHealth, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [dashboardLoaded, currentUser]);
+
   const showToast = useCallback(msg => {
     setToast({ msg, show: true });
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(t => ({ ...t, show: false })), 2500);
   }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      const auth = getFirebaseAuth();
+      await signOut(auth);
+    } catch (error) {
+      console.warn("Logout failed:", error);
+    } finally {
+      setCurrentUser(null);
+      setDashboardLoaded(false);
+      router.replace("/login");
+      router.refresh();
+    }
+  }, [router]);
 
   const handleSave = useCallback(({ branchId, month, elec, water, fuel, fuelType = "diesel", coffeeGroundsKg = 0, co2Total, wGen, wRec, wOrg, wHaz, recycleRate, materials = [], materialItems = materials.length, materialQty = sumMaterialQty(materials), documents = [], note = "" }) => {
     const canonicalBranchId = getCanonicalBranchId(branchId);
@@ -1864,7 +1903,7 @@ export default function App() {
           {page === "analytics" && <PageAnalytics branches={branches} monthlyCo2={monthlyCo2} entriesLog={entriesLog} />}
           {page === "ranking" && <PageRanking branches={branches} onBranchClick={i => setModalBranchIdx(i)} />}
           {page === "reports" && <PageReports branches={branches} monthlyCo2={monthlyCo2} yearlyStats={yearlyStats} entriesLog={entriesLog} showToast={showToast} />}
-          {page === "settings" && <PageSettings user={currentUser} userProfile={userProfile} loginHistory={loginHistory} entriesLog={entriesLog} databaseStatus={databaseStatus} onProfileChange={setUserProfile} onResetOperationalData={resetOperationalData} onResetAllData={resetAllDashboardData} />}
+          {page === "settings" && <PageSettings user={currentUser} userProfile={userProfile} loginHistory={loginHistory} entriesLog={entriesLog} databaseStatus={databaseStatus} onProfileChange={setUserProfile} onResetOperationalData={resetOperationalData} onResetAllData={resetAllDashboardData} onLogout={handleLogout} />}
         </div>
       </div>
 
