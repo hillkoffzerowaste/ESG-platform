@@ -511,6 +511,26 @@ function SummaryTab({ entry, onSave, showToast }) {
           {/* Actions */}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
             <button onClick={exportReport} className="btn btn-primary">📥 Export CSV Report</button>
+            <button onClick={async () => {
+              try {
+                const res = await fetch("/api/cfo-report", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(entry)
+                });
+                if (!res.ok) throw new Error("Export failed");
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `hillkoff-cfo-${entry.reportingYear || "report"}.xlsx`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast("✅ ดาวน์โหลด Excel (TGO Template) เรียบร้อย");
+              } catch (e) {
+                showToast(`❌ ${e.message}`, "error");
+              }
+            }} className="btn btn-primary" style={{ background: "linear-gradient(135deg,#1565c0,#1976d2)" }}>📊 Export Excel (TGO)</button>
             <button onClick={() => {
               if (confirm("บันทึกข้อมูล CFO ไปยังระบบ?")) {
                 onSave(entry);
