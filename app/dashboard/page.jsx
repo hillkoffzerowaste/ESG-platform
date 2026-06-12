@@ -193,6 +193,28 @@ function OrgInfoTab({ entry, setEntry }) {
         </div>
       </div>
 
+      {/* Product Output */}
+      <div className="section-title">📦 ผลผลิต (Product Output) — สำหรับคำนวณ Carbon Intensity</div>
+      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+        <div className="grid-2">
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280" }}>ปริมาณผลผลิต</label>
+            <input className="input" type="number" value={entry.productOutput?.quantity || ""} onChange={e => setEntry(prev => ({ ...prev, productOutput: { ...prev.productOutput, quantity: toNumber(e.target.value) } }))} placeholder="30000" />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280" }}>หน่วย</label>
+            <select className="select" value={entry.productOutput?.unit || "ตัน"} onChange={e => setEntry(prev => ({ ...prev, productOutput: { ...prev.productOutput, unit: e.target.value } }))}>
+              <option value="ตัน">ตัน</option>
+              <option value="กิโลกรัม">กิโลกรัม</option>
+              <option value="ชิ้น">ชิ้น</option>
+              <option value="หน่วย">หน่วย</option>
+              <option value="ลิตร">ลิตร</option>
+              <option value="kWh">kWh</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div className="section-title">📄 แบบฟอร์มอ้างอิง อบก.</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8, marginBottom: 16 }}>
         {Object.entries(TGO_FORMS).map(([key, f]) => (
