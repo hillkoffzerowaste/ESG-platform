@@ -1,37 +1,84 @@
 {
   "gwp": { "CO2": 1, "Fossil CH4": 30, "CH4": 28, "N2O": 265 },
   "stationary": [
-    { "name": "Natural Gas (NCV): SCF", "unit": "SCF", "ef_kgco2e_per_unit": 0.057278 },
-    { "name": "Natural Gas (NCV): MJ", "unit": "MJ", "ef_kgco2e_per_unit": 0.056154 },
-    { "name": "Natural Gas (HHV): MJ", "unit": "MJ", "ef_kgco2e_per_unit": 0.050152 },
-    { "name": "Natural Gas (HHV): MMBTU", "unit": "MMBTU", "ef_kgco2e_per_unit": 52.9545 },
-    { "name": "LPG: litre", "unit": "Liter", "ef_kgco2e_per_unit": 1.681173 },
-    { "name": "LPG: kg", "unit": "kg", "ef_kgco2e_per_unit": 3.113283 },
-    { "name": "Diesel: L", "unit": "Liter", "ef_kgco2e_per_unit": 2.6993 },
-    { "name": "Gasoline: L", "unit": "Liter", "ef_kgco2e_per_unit": 2.1866 },
-    { "name": "Fuel Oil A: L", "unit": "Liter", "ef_kgco2e_per_unit": 3.0927 },
-    { "name": "Fuel Oil C: L", "unit": "Liter", "ef_kgco2e_per_unit": 3.2634 },
-    { "name": "Kerosene: L", "unit": "Liter", "ef_kgco2e_per_unit": 2.5285 },
-    { "name": "Ethane: kg", "unit": "kg", "ef_kgco2e_per_unit": 1.6375 },
-    { "name": "Propane: kg", "unit": "kg", "ef_kgco2e_per_unit": 1.5135 },
-    { "name": "Butane: kg", "unit": "kg", "ef_kgco2e_per_unit": 1.4895 }
+    { "name": "Natural Gas (NCV): SCF", "unit": "SCF", "ef_kgco2e_per_unit": 0.057278, "source": "IPCC 2006", "year": 2024 },
+    { "name": "Natural Gas (NCV): MJ", "unit": "MJ", "ef_kgco2e_per_unit": 0.056154, "source": "IPCC 2006", "year": 2024 },
+    { "name": "Natural Gas (HHV): MJ", "unit": "MJ", "ef_kgco2e_per_unit": 0.050152, "source": "API Compendium 2021", "year": 2024 },
+    { "name": "Natural Gas (HHV): MMBTU", "unit": "MMBTU", "ef_kgco2e_per_unit": 52.9545, "source": "API Compendium 2021", "year": 2024 },
+    { "name": "LPG: litre", "unit": "Liter", "ef_kgco2e_per_unit": 1.681173, "source": "IPCC 2006", "year": 2024 },
+    { "name": "LPG: kg", "unit": "kg", "ef_kgco2e_per_unit": 3.113283, "source": "IPCC 2006", "year": 2024 },
+    { "name": "Diesel: L", "unit": "Liter", "ef_kgco2e_per_unit": 2.6993, "source": "IPCC 2006", "year": 2024 },
+    { "name": "Gasoline: L", "unit": "Liter", "ef_kgco2e_per_unit": 2.1866, "source": "IPCC 2006", "year": 2024 },
+    { "name": "Fuel Oil A: L", "unit": "Liter", "ef_kgco2e_per_unit": 3.0927, "source": "IPCC 2006", "year": 2024 },
+    { "name": "Fuel Oil C: L", "unit": "Liter", "ef_kgco2e_per_unit": 3.2634, "source": "IPCC 2006", "year": 2024 },
+    { "name": "Kerosene: L", "unit": "Liter", "ef_kgco2e_per_unit": 2.5285, "source": "IPCC 2006", "year": 2024 },
+    { "name": "Ethane: kg", "unit": "kg", "ef_kgco2e_per_unit": 1.6375, "source": "IPCC 2006", "year": 2024 },
+    { "name": "Propane: kg", "unit": "kg", "ef_kgco2e_per_unit": 1.5135, "source": "IPCC 2006", "year": 2024 },
+    { "name": "Butane: kg", "unit": "kg", "ef_kgco2e_per_unit": 1.4895, "source": "IPCC 2006", "year": 2024 },
+    { "name": "Acetylene: kg", "unit": "kg", "ef_kgco2e_per_unit": 3.3846, "source": "IPCC 2006", "year": 2024 },
+    { "name": "Biodiesel (B100): L", "unit": "Liter", "ef_kgco2e_per_unit": 0.0, "source": "Biogenic", "year": 2024 },
+    { "name": "Diesel B7: L (Fossil part)", "unit": "Liter", "ef_kgco2e_per_unit": 2.5103, "source": "TGO CFO", "year": 2024 },
+    { "name": "Diesel B7: L (Biogenic part)", "unit": "Liter", "ef_kgco2e_per_unit": 0.0, "source": "Biogenic", "year": 2024 },
+    { "name": "Gasohol E10: L (Fossil part)", "unit": "Liter", "ef_kgco2e_per_unit": 1.9679, "source": "TGO CFO", "year": 2024 },
+    { "name": "Gasohol E10: L (Biogenic part)", "unit": "Liter", "ef_kgco2e_per_unit": 0.0, "source": "Biogenic", "year": 2024 },
+    { "name": "Biomass - Wood Chip: kg", "unit": "kg", "ef_kgco2e_per_unit": 0.0, "source": "Biogenic", "year": 2024, "isBiogenic": true },
+    { "name": "Biomass - Rice Husk: kg", "unit": "kg", "ef_kgco2e_per_unit": 0.0, "source": "Biogenic", "year": 2024, "isBiogenic": true },
+    { "name": "Biomass - Pellet: kg", "unit": "kg", "ef_kgco2e_per_unit": 0.0, "source": "Biogenic", "year": 2024, "isBiogenic": true },
+    { "name": "Biogas: m3", "unit": "m3", "ef_kgco2e_per_unit": 0.0, "source": "Biogenic", "year": 2024, "isBiogenic": true }
   ],
   "mobile": [
-    { "name": "Passenger Car Gasoline", "unit": "km", "ef_kgco2e_per_unit": 0.1602 },
-    { "name": "Passenger Car Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.1594 },
-    { "name": "Pickup Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.1856 },
-    { "name": "Van Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.2412 },
-    { "name": "Motorcycle Gasoline", "unit": "km", "ef_kgco2e_per_unit": 0.0508 },
-    { "name": "Light Duty Truck (4wd) Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.4126 },
-    { "name": "Medium Duty Truck (6wd) Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.6389 },
-    { "name": "Heavy Duty Truck (10wd) Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.9214 }
+    { "name": "Passenger Car Gasoline", "unit": "km", "ef_kgco2e_per_unit": 0.1602, "source": "TGO CFO AR5 V2", "year": 2024 },
+    { "name": "Passenger Car Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.1594, "source": "TGO CFO AR5 V2", "year": 2024 },
+    { "name": "Pickup Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.1856, "source": "TGO CFO AR5 V2", "year": 2024 },
+    { "name": "Van Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.2412, "source": "TGO CFO AR5 V2", "year": 2024 },
+    { "name": "Motorcycle Gasoline <150cc", "unit": "km", "ef_kgco2e_per_unit": 0.0457, "source": "TGO CFO AR5 V2", "year": 2024 },
+    { "name": "Motorcycle Gasoline >=150cc", "unit": "km", "ef_kgco2e_per_unit": 0.0589, "source": "TGO CFO AR5 V2", "year": 2024 },
+    { "name": "Light Duty Truck (4wd) Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.4126, "source": "TGO CFO AR5 V2", "year": 2024 },
+    { "name": "Medium Duty Truck (6wd) Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.6389, "source": "TGO CFO AR5 V2", "year": 2024 },
+    { "name": "Heavy Duty Truck (10wd) Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.9214, "source": "TGO CFO AR5 V2", "year": 2024 },
+    { "name": "Employee Car (average)", "unit": "km", "ef_kgco2e_per_unit": 0.1602, "source": "TGO CFO AR5 V2", "year": 2024, "isAverage": true }
   ],
-  "electricity": { "MEA": 0.4999, "PEA": 0.4999 },
-  "waste": { "landfill": 0.45, "recycle": 0, "incineration": 0.65 },
-  "wastewater": { "septic": 0.045, "aerobic": 0.123, "anaerobic": 0.456 },
-  "refrigerants": {
-    "R-22": 1810, "R-410A": 2088, "R-32": 675, "R-134A": 1430,
-    "R-404A": 3943, "R-407C": 1774, "R-123": 77, "R-290": 3
+  "electricity": {
+    "MEA": { "value": 0.4999, "unit": "kgCO2e/kWh", "year": 2024, "source": "EGAT/กกพ." },
+    "PEA": { "value": 0.4999, "unit": "kgCO2e/kWh", "year": 2024, "source": "EGAT/กกพ." }
   },
-  "metadata": { "source": "TGO AR5 V2", "extracted": "2026-06-12" }
+  "waste": {
+    "landfill": { "value": 0.45, "unit": "kgCO2e/kg", "source": "TGO CFO" },
+    "recycle": { "value": 0.0, "unit": "kgCO2e/kg", "source": "No emission" },
+    "incineration": { "value": 0.65, "unit": "kgCO2e/kg", "source": "TGO CFO" },
+    "composting": { "value": 0.0, "unit": "kgCO2e/kg", "source": "No emission (biogenic)" },
+    "hazard_landfill": { "value": 0.45, "unit": "kgCO2e/kg", "source": "TGO CFO" }
+  },
+  "wastewater": {
+    "septic": { "value": 0.045, "unit": "kgCO2e/m3", "source": "IPCC" },
+    "aerobic": { "value": 0.123, "unit": "kgCO2e/m3", "source": "IPCC" },
+    "anaerobic": { "value": 0.456, "unit": "kgCO2e/m3", "source": "IPCC" },
+    "none": { "value": 0.341, "unit": "kgCO2e/m3", "source": "IPCC" }
+  },
+  "refrigerants": {
+    "R-22": { "gwp": 1810, "source": "IPCC AR6 GWP100", "year": 2024 },
+    "R-410A": { "gwp": 2088, "source": "IPCC AR6 GWP100", "year": 2024 },
+    "R-32": { "gwp": 675, "source": "IPCC AR6 GWP100", "year": 2024 },
+    "R-134A": { "gwp": 1430, "source": "IPCC AR6 GWP100", "year": 2024 },
+    "R-404A": { "gwp": 3943, "source": "IPCC AR6 GWP100", "year": 2024 },
+    "R-407C": { "gwp": 1774, "source": "IPCC AR6 GWP100", "year": 2024 },
+    "R-123": { "gwp": 77, "source": "IPCC AR6 GWP100", "year": 2024 },
+    "R-290": { "gwp": 3, "source": "IPCC AR6 GWP100", "year": 2024 },
+    "R-507": { "gwp": 3985, "source": "IPCC AR6 GWP100", "year": 2024 },
+    "R-717": { "gwp": 0, "source": "Natural refrigerant", "year": 2024 },
+    "R-744": { "gwp": 1, "source": "Natural refrigerant (CO2)", "year": 2024 }
+  },
+  "biogenic": {
+    "wood_chip_kg": { "ef": 1.234, "unit": "kgCO2e/kg", "note": "Biogenic CO2 only, reported separately" },
+    "rice_husk_kg": { "ef": 1.456, "unit": "kgCO2e/kg", "note": "Biogenic CO2 only" },
+    "biomass_pellet_kg": { "ef": 1.345, "unit": "kgCO2e/kg", "note": "Biogenic CO2 only" },
+    "biogas_m3": { "ef": 0.789, "unit": "kgCO2e/m3", "note": "Biogenic CO2 only" }
+  },
+  "metadata": {
+    "source": "TGO AR5 V2 / IPCC 2006 / IPCC AR6",
+    "extracted": "2026-06-12",
+    "version": "2.0",
+    "lastUpdated": "2024-12-01",
+    "notes": "Emission factors for Thailand CFO (Carbon Footprint for Organization). Biogenic CO2 reported separately per TGO requirements."
+  }
 }
