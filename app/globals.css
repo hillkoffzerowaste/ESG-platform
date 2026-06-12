@@ -1,3 +1,61 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--g1:#0f4c2a;--g2:#166534;--g3:#15803d;--g4:#16a34a;--g5:#22c55e;--bg:#f0fdf4;--card:#fff;--text:#14532d;--muted:#6b7280;--border:#d1fae5;--shadow:0 2px 12px rgba(22,101,52,.08);--font:'Prompt','Noto Sans Thai',sans-serif;--mono:'DM Mono','Courier New',monospace}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden;min-height:100dvh}
+input,select,textarea,button{font-family:var(--font);font-size:14px}
+a{color:var(--g2);text-decoration:none}
+.page{max-width:960px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+.input,.select,.textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;background:#f0fdf4;color:var(--text);outline:none;padding:10px 14px;font-size:14px;transition:border .2s}
+.input:focus,.select:focus,.textarea:focus{border-color:var(--g4);background:#fff}
+.textarea{resize:vertical;line-height:1.6;min-height:80px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,var(--g2),var(--g4));color:#fff;box-shadow:0 4px 16px rgba(22,101,52,.3)}
+.btn-primary:hover{box-shadow:0 6px 24px rgba(22,101,52,.4);transform:translateY(-1px)}
+.btn-secondary{background:var(--bg);color:var(--g2);border:1px solid var(--border)}
+.btn-danger{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:8px}
+.tab-bar{display:flex;gap:4px;overflow-x:auto;padding:4px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:16px}
+.tab-btn{padding:10px 18px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s;background:transparent;color:var(--muted);flex-shrink:0}
+.tab-btn.active{background:var(--g2);color:#fff}
+.tab-btn:hover:not(.active){background:#dcfce7}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{text-align:center;padding:16px;border-radius:12px}
+.kpi-label{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px}
+.kpi-value{font-size:28px;font-weight:800;color:var(--g2);line-height:1.2}
+.kpi-unit{font-size:11px;color:var(--muted)}
+.table-wrap{overflow-x:auto;width:100%}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
+th{background:#dcfce7;font-weight:700;color:var(--g2);font-size:12px}
+tr:hover{background:#fafff5}
+.section-title{font-size:13px;font-weight:700;color:var(--muted);margin:16px 0 10px;display:flex;align-items:center;gap:8px}
+.section-title:after{content:'';flex:1;height:1px;background:var(--border)}
+.upload-zone{border:2px dashed #86efac;border-radius:20px;padding:40px 20px;text-align:center;background:#f0fdf4;cursor:pointer;transition:all .2s}
+.upload-zone:hover{background:#dcfce7;border-color:var(--g4)}
+.upload-zone.dragging{background:#bbf7d0;border-color:var(--g2)}
+.badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block}
+.badge-green{background:#dcfce7;color:var(--g2)}
+.badge-yellow{background:#fef9c3;color:#854d0e}
+.badge-red{background:#fee2e2;color:#b91c1c}
+.hidden{display:none}
+.mt-2{margin-top:8px}
+.mt-4{margin-top:16px}
+.mb-2{margin-bottom:8px}
+.mb-4{margin-bottom:16px}
+.gap-2{gap:8px}
+.flex{display:flex}
+.flex-wrap{flex-wrap:wrap}
+.items-center{align-items:center}
+.justify-between{justify-content:space-between}
+.text-center{text-align:center}
+.text-muted{color:var(--muted)}
+.text-sm{font-size:12px}
+.text-xs{font-size:10px}
+.font-bold{font-weight:700}
+.print-only{display:none}
+@media print{.no-print{display:none!important}.print-only{display:block!important}.page{padding:0;max-width:none}.card{border:none;box-shadow:none;break-inside:avoid}}
+@media(max-width:640px){.grid-2,.grid-3{grid-template-columns:1fr}.page{padding:12px}.tab-btn{padding:8px 12px;font-size:12px}}

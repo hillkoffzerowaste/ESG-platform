@@ -11,3 +11,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .next-dev.*.log
+temp*
+temp_*
+temp/
+docs/*.jpg
+docs/*.rar
+docs/*.html
+docs/embed_images.py
+data/ef_raw.json

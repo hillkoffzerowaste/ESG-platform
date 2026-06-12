@@ -1,0 +1,37 @@
+{
+  "gwp": { "CO2": 1, "Fossil CH4": 30, "CH4": 28, "N2O": 265 },
+  "stationary": [
+    { "name": "Natural Gas (NCV): SCF", "unit": "SCF", "ef_kgco2e_per_unit": 0.057278 },
+    { "name": "Natural Gas (NCV): MJ", "unit": "MJ", "ef_kgco2e_per_unit": 0.056154 },
+    { "name": "Natural Gas (HHV): MJ", "unit": "MJ", "ef_kgco2e_per_unit": 0.050152 },
+    { "name": "Natural Gas (HHV): MMBTU", "unit": "MMBTU", "ef_kgco2e_per_unit": 52.9545 },
+    { "name": "LPG: litre", "unit": "Liter", "ef_kgco2e_per_unit": 1.681173 },
+    { "name": "LPG: kg", "unit": "kg", "ef_kgco2e_per_unit": 3.113283 },
+    { "name": "Diesel: L", "unit": "Liter", "ef_kgco2e_per_unit": 2.6993 },
+    { "name": "Gasoline: L", "unit": "Liter", "ef_kgco2e_per_unit": 2.1866 },
+    { "name": "Fuel Oil A: L", "unit": "Liter", "ef_kgco2e_per_unit": 3.0927 },
+    { "name": "Fuel Oil C: L", "unit": "Liter", "ef_kgco2e_per_unit": 3.2634 },
+    { "name": "Kerosene: L", "unit": "Liter", "ef_kgco2e_per_unit": 2.5285 },
+    { "name": "Ethane: kg", "unit": "kg", "ef_kgco2e_per_unit": 1.6375 },
+    { "name": "Propane: kg", "unit": "kg", "ef_kgco2e_per_unit": 1.5135 },
+    { "name": "Butane: kg", "unit": "kg", "ef_kgco2e_per_unit": 1.4895 }
+  ],
+  "mobile": [
+    { "name": "Passenger Car Gasoline", "unit": "km", "ef_kgco2e_per_unit": 0.1602 },
+    { "name": "Passenger Car Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.1594 },
+    { "name": "Pickup Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.1856 },
+    { "name": "Van Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.2412 },
+    { "name": "Motorcycle Gasoline", "unit": "km", "ef_kgco2e_per_unit": 0.0508 },
+    { "name": "Light Duty Truck (4wd) Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.4126 },
+    { "name": "Medium Duty Truck (6wd) Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.6389 },
+    { "name": "Heavy Duty Truck (10wd) Diesel", "unit": "km", "ef_kgco2e_per_unit": 0.9214 }
+  ],
+  "electricity": { "MEA": 0.4999, "PEA": 0.4999 },
+  "waste": { "landfill": 0.45, "recycle": 0, "incineration": 0.65 },
+  "wastewater": { "septic": 0.045, "aerobic": 0.123, "anaerobic": 0.456 },
+  "refrigerants": {
+    "R-22": 1810, "R-410A": 2088, "R-32": 675, "R-134A": 1430,
+    "R-404A": 3943, "R-407C": 1774, "R-123": 77, "R-290": 3
+  },
+  "metadata": { "source": "TGO AR5 V2", "extracted": "2026-06-12" }
+}
