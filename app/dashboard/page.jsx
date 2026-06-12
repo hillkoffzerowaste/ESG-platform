@@ -287,6 +287,7 @@ function Scope1Tab({ entry, setEntry }) {
               <input className="input" type="number" style={{ width: 100 }} value={fuel.quantity || ""} onChange={e => updateStationary(i, { quantity: toNumber(e.target.value) })} placeholder="0" min="0" />
               <span style={{ fontSize: 11, color: "#6b7280", whiteSpace: "nowrap", minWidth: 50 }}>{ef?.unit || ""}</span>
               <span style={{ fontSize: 11, fontWeight: 700, color: co2 > 0 ? "#166534" : "#6b7280", minWidth: 80, textAlign: "right" }}>{co2 > 0 ? `${round(co2, 2)} kgCO₂e` : "—"}</span>
+              <input className="input" type="text" style={{ width: 90, fontSize: 10, padding: "6px 8px" }} value={fuel.sourceReference || ""} onChange={e => updateStationary(i, { sourceReference: e.target.value })} placeholder="📎 เลขที่บิล" />
               <button onClick={() => removeStationary(i)} style={{ width: 28, height: 28, border: "none", borderRadius: 8, background: "#fee2e2", color: "#b91c1c", cursor: "pointer", fontSize: 14 }}>✕</button>
             </div>
           );
