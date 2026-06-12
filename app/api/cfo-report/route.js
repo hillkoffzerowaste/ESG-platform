@@ -140,7 +140,29 @@ export async function POST(req) {
       ws6.getRow(4 + i).values = r;
     });
 
-    // ─── Sheet 7: Net Zero ─────────────────────────────────
+    // ─── Sheet 7: Fr-04.2 Base Year ────────────────────────
+    const fr042 = workbook.addWorksheet("Fr-04.2 ปีฐาน");
+    fr042.columns = [{ header: "รายการ", key: "item", width: 30 }, { header: "ปีฐาน", key: "base", width: 20 }];
+    fr042.mergeCells("A1:B1");
+    fr042.getCell("A1").value = `Fr-04.2: Base Year (ปีฐาน ${entry.baseYear || "2561"})`;
+    fr042.getCell("A1").font = { bold: true, size: 16, color: { argb: "FF1A5632" } };
+    const nydata = [
+      ["ชื่อองค์กร", entry.orgInfo?.orgName || "-"],
+      ["ปีฐาน", String(entry.baseYear || "2561")],
+      ["ปีปัจจุบัน", String(entry.reportingYear || "-")],
+      ["", ""],
+      ["Scope 1 (tCO₂e)", round(result?.scope1?.totalTonne || 0)],
+      ["Scope 2 (tCO₂e)", round(result?.scope2?.totalTonne || 0)],
+      ["Scope 3 (tCO₂e)", round(result?.scope3?.totalTonne || 0)],
+      ["รวม (tCO₂e)", round(result?.total?.tCO2e || 0)],
+      ["", ""],
+      ["Carbon Intensity", `${result?.carbonIntensity?.value || 0} ${result?.carbonIntensity?.unit?.split("/")[1] || "tCO₂e/หน่วย"}`],
+      ["", ""],
+      ["หมายเหตุ", "กรุณาบันทึกข้อมูลปีฐานเพื่อดูเปรียบเทียบ"],
+    ];
+    nydata.forEach((r, i) => { fr042.getRow(3 + i).values = r; });
+
+    // ─── Sheet 8: Net Zero ─────────────────────────────────
     const ws7 = workbook.addWorksheet("Net Zero");
     ws7.columns = [{ header: "หัวข้อ", key: "t", width: 30 }, { header: "รายละเอียด", key: "d", width: 40 }];
     ws7.mergeCells("A1:B1");
