@@ -579,10 +579,52 @@ function Scope3Tab({ entry, setEntry }) {
       {totalCo2 > 0 && (
         <div className="card" style={{ padding: 14, background: "#f0fdf4", border: "1px solid #bbf7d0", marginTop: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 800, color: "#166534", textAlign: "center" }}>
-            ♻️ Scope 3 รวม: {round(totalCo2 * 0.001, 4)} tCO₂e ({totalCo2} kgCO₂e)
+            ♻️ Scope 3 (Waste+WW) รวม: {round(totalCo2 * 0.001, 4)} tCO₂e ({totalCo2} kgCO₂e)
           </div>
         </div>
       )}
+
+      {/* Scope 3 Categories (CAT1-9) */}
+      <div className="section-title">📦 Scope 3 Categories (CAT1-9)</div>
+      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+        <details>
+          <summary style={{ fontSize: 12, fontWeight: 700, color: "#166534", cursor: "pointer" }}>แสดงข้อมูล Scope 3 Categories (ถ้ามี)</summary>
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 8 }}>CAT1: Purchased Goods & Services</div>
+            <div className="grid-2" style={{ marginBottom: 12 }}>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>ชื่อสินค้า</label>
+                <input className="input" value={entry.scope3?.purchasedGoods?.[0]?.name || ""} onChange={e => setEntry(prev => ({ ...prev, scope3: { ...prev.scope3, purchasedGoods: [{ name: e.target.value, quantity: prev.scope3?.purchasedGoods?.[0]?.quantity || 0, ef: prev.scope3?.purchasedGoods?.[0]?.ef || 0 }] } }))} placeholder="Propylene" />
+              </div>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>ปริมาณ (kg)</label>
+                <input className="input" type="number" value={entry.scope3?.purchasedGoods?.[0]?.quantity || ""} onChange={e => setEntry(prev => ({ ...prev, scope3: { ...prev.scope3, purchasedGoods: [{ name: prev.scope3?.purchasedGoods?.[0]?.name || '', quantity: toNumber(e.target.value), ef: 1.5135 }] } }))} placeholder="20790000" />
+              </div>
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 8 }}>CAT3: Energy Upstream</div>
+            <div>
+              <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>ไฟฟ้า upstream (kWh)</label>
+              <input className="input" type="number" value={entry.scope3?.energyUpstreamKwh || ""} onChange={e => setEntry(prev => ({ ...prev, scope3: { ...prev.scope3, energyUpstreamKwh: toNumber(e.target.value) } }))} placeholder="49500" />
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", margin: "12px 0 8px" }}>CAT7: Employee Commuting</div>
+            <div className="grid-2">
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>พนักงาน (คน)</label>
+                <input className="input" type="number" value={entry.scope3?.employees || ""} onChange={e => setEntry(prev => ({ ...prev, scope3: { ...prev.scope3, employees: toNumber(e.target.value) } }))} placeholder="200" />
+              </div>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>กม./วัน/คน</label>
+                <input className="input" type="number" value={entry.scope3?.avgKmPerDay || ""} onChange={e => setEntry(prev => ({ ...prev, scope3: { ...prev.scope3, avgKmPerDay: toNumber(e.target.value) } }))} placeholder="20" />
+              </div>
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", margin: "12px 0 8px" }}>CAT6: Business Travel (กม.)</div>
+            <div>
+              <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>ระยะทาง (กม./ปี)</label>
+              <input className="input" type="number" value={entry.scope3?.businessTravel?.[0]?.km || ""} onChange={e => setEntry(prev => ({ ...prev, scope3: { ...prev.scope3, businessTravel: [{ km: toNumber(e.target.value) }] } }))} placeholder="3000" />
+            </div>
+          </div>
+        </details>
+      </div>
     </div>
   );
 }
