@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { getFirebaseAuth, toAppUser } from "@/lib/firebase";
 import { hasOtpClaim } from "@/lib/otpClient";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { calculateCFO, quickCalc } from "@/lib/cfoCalculator";
-import { STATIONARY_FUEL_TYPES, VEHICLE_CATEGORIES, REFRIGERANT_TYPES, GRID_AREA_OPTIONS, MONTHS_TH, WASTEWATER_METHOD_OPTIONS, TGO_FORMS, createEmptyEntry, createStationaryRow, createMobileRow, createRefrigerantRow, validateEntry } from "@/lib/cfoForms";
+import { calculateCFO } from "@/lib/cfoCalculator";
+import { STATIONARY_FUEL_TYPES, VEHICLE_CATEGORIES, REFRIGERANT_TYPES, GRID_AREA_OPTIONS, MONTHS_TH, WASTEWATER_METHOD_OPTIONS, TGO_FORMS, createEmptyEntry, validateEntry } from "@/lib/cfoForms";
 import { COMMON_FUELS } from "@/lib/tgoFactors";
 import { KNOWLEDGE_MODULES, TOOLTIPS, KPI_DEFINITIONS, BENEFICIARY_STATEMENT, CERTIFICATION_BADGES } from "@/lib/knowledgeBase";
-import { calcCombined, calcSolar, calcEV, calcLED, calcFoodWaste } from "@/lib/benefitCalculator";
+import { calcCombined } from "@/lib/benefitCalculator";
 
 // ─── Tooltip Component ──────────────────────────────────────────────
 function InfoTip({ tipKey, children }) {
