@@ -775,6 +775,34 @@ function SummaryTab({ entry, onSave, showToast }) {
             </div>
           </div>
 
+          {/* Base Year Comparison */}
+          {entry.baseYear && result?.total?.tCO2e > 0 && (
+            <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 12 }}>📅 เปรียบเทียบปีฐาน (Base Year: {entry.baseYear})</div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>รายการ</th><th>ปีฐาน ({entry.baseYear})</th><th>ปีปัจจุบัน ({entry.reportingYear})</th><th>เปลี่ยนแปลง</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Scope 1 (tCO₂e)</td><td>-</td><td>{round(result.scope1.totalTonne, 4)}</td><td>-</td></tr>
+                    <tr><td>Scope 2 (tCO₂e)</td><td>-</td><td>{round(result.scope2.totalTonne, 4)}</td><td>-</td></tr>
+                    <tr><td>Scope 3 (tCO₂e)</td><td>-</td><td>{round(result.scope3.totalTonne, 4)}</td><td>-</td></tr>
+                    <tr style={{ background: "#dcfce7", fontWeight: 800 }}>
+                      <td><b>รวม (tCO₂e)</b></td>
+                      <td>-</td>
+                      <td><b>{round(result.total.tCO2e, 4)}</b></td>
+                      <td>-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 8 }}>
+                💡 กรุณาบันทึกข้อมูลปีฐานเพื่อดูการเปรียบเทียบ
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
             <button onClick={exportReport} className="btn btn-primary">📥 Export CSV Report</button>
