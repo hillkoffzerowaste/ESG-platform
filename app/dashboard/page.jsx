@@ -358,6 +358,68 @@ function Scope1Tab({ entry, setEntry }) {
         </details>
       </div>
 
+      {/* Process Emissions */}
+      <div className="section-title">🧪 Process Emissions (การปล่อยจากกระบวนการผลิต)</div>
+      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+        <details>
+          <summary style={{ fontSize: 12, fontWeight: 700, color: "#166534", cursor: "pointer" }}>แสดงส่วน Process Emissions (ถ้ามี)</summary>
+          <div style={{ marginTop: 12 }}>
+            <div className="grid-3">
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>CO₂ (กก.)</label>
+                <input className="input" type="number" value={entry.processEmissions?.co2Kg || ""} onChange={e => setEntry(prev => ({ ...prev, processEmissions: { ...prev.processEmissions, co2Kg: toNumber(e.target.value) } }))} placeholder="0" />
+              </div>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>CH₄ (กก.)</label>
+                <input className="input" type="number" value={entry.processEmissions?.ch4Kg || ""} onChange={e => setEntry(prev => ({ ...prev, processEmissions: { ...prev.processEmissions, ch4Kg: toNumber(e.target.value) } }))} placeholder="0" />
+              </div>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>N₂O (กก.)</label>
+                <input className="input" type="number" value={entry.processEmissions?.n2oKg || ""} onChange={e => setEntry(prev => ({ ...prev, processEmissions: { ...prev.processEmissions, n2oKg: toNumber(e.target.value) } }))} placeholder="0" />
+              </div>
+            </div>
+            {calcResult?.scope1?.process?.total > 0 && (
+              <div style={{ marginTop: 8, padding: 8, background: "#f0fdf4", borderRadius: 8, fontSize: 12, fontWeight: 700, color: "#166534" }}>
+                Process Emissions: {round(calcResult.scope1.process.total, 2)} kgCO₂e
+              </div>
+            )}
+          </div>
+        </details>
+      </div>
+
+      {/* Fugitive CH₄ */}
+      <div className="section-title">💨 Fugitive CH₄ (Septic Tank & Wastewater)</div>
+      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+        <details>
+          <summary style={{ fontSize: 12, fontWeight: 700, color: "#166534", cursor: "pointer" }}>แสดงส่วน CH₄ Fugitive (ถ้ามี)</summary>
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 8 }}>🚽 CH₄ จาก Septic Tank (ห้องน้ำ)</div>
+            <div className="grid-2" style={{ marginBottom: 12 }}>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>จำนวนพนักงานสูงสุด (คน)</label>
+                <input className="input" type="number" value={entry.septic?.employees || ""} onChange={e => setEntry(prev => ({ ...prev, septic: { ...prev.septic, employees: toNumber(e.target.value) } }))} placeholder="200" />
+              </div>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>วันทำงานรวม (วัน/ปี)</label>
+                <input className="input" type="number" value={entry.septic?.workDays || ""} onChange={e => setEntry(prev => ({ ...prev, septic: { ...prev.septic, workDays: toNumber(e.target.value) } }))} placeholder="300" />
+              </div>
+            </div>
+
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 8 }}>💧 CH₄ จาก Wastewater (COD-based)</div>
+            <div className="grid-2">
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>ปริมาณน้ำเสีย (ลบ.ม./ปี)</label>
+                <input className="input" type="number" value={entry.fugitiveEmissions?.wastewater?.volumeM3 || ""} onChange={e => setEntry(prev => ({ ...prev, fugitiveEmissions: { ...prev.fugitiveEmissions, wastewater: { ...prev.fugitiveEmissions?.wastewater, volumeM3: toNumber(e.target.value) } } }))} placeholder="20000" />
+              </div>
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 600, color: "#6b7280" }}>COD (mg/L)</label>
+                <input className="input" type="number" value={entry.fugitiveEmissions?.wastewater?.codMgL || ""} onChange={e => setEntry(prev => ({ ...prev, fugitiveEmissions: { ...prev.fugitiveEmissions, wastewater: { ...prev.fugitiveEmissions?.wastewater, codMgL: toNumber(e.target.value) } } }))} placeholder="8000" />
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
+
       {/* Scope 1 Summary */}
       {calcResult && (calcResult.scope1.total > 0) && (
         <div className="card" style={{ padding: 14, background: "#f0fdf4", border: "1px solid #bbf7d0", marginBottom: 16 }}>
@@ -365,7 +427,9 @@ function Scope1Tab({ entry, setEntry }) {
           <div style={{ fontSize: 11, color: "#374151" }}>
             {calcResult.scope1.stationary.total > 0 && <div>🔥 Stationary: {round(calcResult.scope1.stationary.total, 2)} kgCO₂e</div>}
             {calcResult.scope1.mobile.total > 0 && <div>🚛 Mobile: {round(calcResult.scope1.mobile.total, 2)} kgCO₂e</div>}
-            {calcResult.scope1.fugitive.total > 0 && <div>🧊 Fugitive: {round(calcResult.scope1.fugitive.total, 2)} kgCO₂e</div>}
+            {calcResult.scope1.fugitive.total > 0 && <div>🧊 Refrigerants: {round(calcResult.scope1.fugitive.total, 2)} kgCO₂e</div>}
+            {calcResult.scope1.fugitiveCH4?.total > 0 && <div>💨 CH₄ Fugitive: {round(calcResult.scope1.fugitiveCH4.total, 2)} kgCO₂e</div>}
+            {calcResult.scope1.process?.total > 0 && <div>🧪 Process: {round(calcResult.scope1.process.total, 2)} kgCO₂e</div>}
           </div>
         </div>
       )}
@@ -379,10 +443,12 @@ function Scope2Tab({ entry, setEntry }) {
   const totalKwh = (elec.monthlyKwh || []).reduce((a, b) => a + toNumber(b), 0);
   const co2 = round(totalKwh * 0.4999);
   const co2t = round(co2 * 0.001, 4);
+  const selfGen = entry.selfGeneratedElectricity || {};
+  const selfGenCo2 = round(toNumber(selfGen.kwh) * ({ natural_gas: 0.05728, diesel: 2.6993, lpg: 3.1133, solar: 0 })[selfGen.fuelType || 'natural_gas']);
 
   return (
     <div>
-      <div className="section-title">⚡ Fr-04.1: Purchased Electricity (ไฟฟ้าที่ซื้อมา)</div>
+      <div className="section-title">⚡ Fr-04.1: Purchased Electricity (ไฟฟ้าที่ซื้อจาก Grid)</div>
       <div className="card" style={{ padding: 20 }}>
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280" }}>พื้นที่ให้บริการไฟฟ้า</label>
@@ -405,12 +471,37 @@ function Scope2Tab({ entry, setEntry }) {
         <div style={{ marginTop: 16, padding: 14, background: "#f0fdf4", borderRadius: 12, border: "1px solid #bbf7d0" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <span style={{ fontSize: 13, color: "#374151" }}>รวม kWh ทั้งปี: <b>{totalKwh.toLocaleString()}</b> kWh</span>
-            <span style={{ fontSize: 13, color: "#374151" }}>Emission Factor: <b>0.4999</b> kgCO₂e/kWh</span>
+            <span style={{ fontSize: 13, color: "#374151" }}>Emission Factor: <b>0.4750</b> kgCO₂e/kWh</span>
           </div>
           <div style={{ fontSize: 20, fontWeight: 800, color: "#166534", textAlign: "center", marginTop: 8 }}>
             = {co2} kgCO₂e ({co2t} tCO₂e)
           </div>
         </div>
+      </div>
+
+      {/* Self-generated Electricity */}
+      <div className="section-title">⚡ Self-generated Electricity (ไฟฟ้าที่ผลิตเอง)</div>
+      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+        <div className="grid-2">
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280" }}>ปริมาณไฟฟ้าที่ผลิตเอง (kWh/ปี)</label>
+            <input className="input" type="number" value={selfGen.kwh || ""} onChange={e => setEntry(prev => ({ ...prev, selfGeneratedElectricity: { ...prev.selfGeneratedElectricity, kwh: toNumber(e.target.value) } }))} placeholder="1500000" />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280" }}>ประเภทเชื้อเพลิง</label>
+            <select className="select" value={selfGen.fuelType || "natural_gas"} onChange={e => setEntry(prev => ({ ...prev, selfGeneratedElectricity: { ...prev.selfGeneratedElectricity, fuelType: e.target.value } }))}>
+              <option value="natural_gas">ก๊าซธรรมชาติ</option>
+              <option value="diesel">ดีเซล</option>
+              <option value="lpg">LPG</option>
+              <option value="solar">โซลาร์เซลล์ (Solar)</option>
+            </select>
+          </div>
+        </div>
+        {selfGenCo2 > 0 && (
+          <div style={{ marginTop: 8, padding: 10, background: "#f0fdf4", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#166534" }}>
+            ไฟฟ้าที่ผลิตเอง: {selfGenCo2} kgCO₂e
+          </div>
+        )}
       </div>
     </div>
   );
