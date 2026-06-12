@@ -8,6 +8,102 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { calculateCFO, quickCalc } from "@/lib/cfoCalculator";
 import { STATIONARY_FUEL_TYPES, VEHICLE_CATEGORIES, REFRIGERANT_TYPES, GRID_AREA_OPTIONS, MONTHS_TH, WASTEWATER_METHOD_OPTIONS, TGO_FORMS, createEmptyEntry, createStationaryRow, createMobileRow, createRefrigerantRow, validateEntry } from "@/lib/cfoForms";
 import { COMMON_FUELS } from "@/lib/tgoFactors";
+import { KNOWLEDGE_MODULES, TOOLTIPS, KPI_DEFINITIONS, BENEFICIARY_STATEMENT, CERTIFICATION_BADGES } from "@/lib/knowledgeBase";
+import { calcCombined, calcSolar, calcEV, calcLED, calcFoodWaste } from "@/lib/benefitCalculator";
+
+// ─── Tooltip Component ──────────────────────────────────────────────
+function InfoTip({ tipKey, children }) {
+  const tip = TOOLTIPS[tipKey] || children;
+  return (
+    <span className="tooltip-trigger">
+      ❔
+      <span className="tooltip-popup">{tip}</span>
+    </span>
+  );
+}
+
+// ─── Gamification Bar ──────────────────────────────────────────────
+function GamificationBar({ entry }) {
+  const hasStationary = (entry.stationaryCombustion || []).length > 0;
+  const hasMobile = (entry.mobileCombustion || []).length > 0;
+  const hasFugitive = (entry.fugitiveEmissions?.refrigerants || []).length > 0;
+  const hasScope1 = hasStationary || hasMobile || hasFugitive;
+  const hasScope2 = (entry.purchasedElectricity?.monthlyKwh || []).some(k => Number(k) > 0);
+  const hasWaste = Object.values(entry.wasteGeneration || {}).some(v => Number(v) > 0);
+  const hasScope3 = hasWaste || (entry.wastewater?.volumeM3 > 0);
+  const hasExport = false; // tracked separately
+  const hasBaseYear = !!entry.baseYear;
+
+  const badges = [
+    { id: 'beginner', icon: '🏅', earned: hasScope1 || hasScope2, title: 'CFO Beginner' },
+    { id: 'collector', icon: '🥈', earned: hasScope1 && hasScope2 && hasScope3, title: 'Data Collector' },
+    { id: 'target', icon: '🎯', earned: hasBaseYear, title: 'Goal Setter' },
+    { id: 'netzero', icon: '💎', earned: hasBaseYear && (hasScope1 || hasScope2), title: 'Net Zero Hero' },
+  ];
+  const earnedCount = badges.filter(b => b.earned).length;
+  const progress = Math.round((earnedCount / badges.length) * 100);
+
+  return (
+    <div className="gamification-bar" style={{ marginBottom: 12 }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>
+          🌱 ความก้าวหน้า: {progress}%
+        </div>
+        <div className="progress-bar">
+          <div className="progress-fill" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+      <div className="gamification-badges">
+        {badges.map(b => (
+          <div key={b.id} className={b.earned ? "badge-earned" : "badge-locked"} title={b.title}>
+            {b.icon}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Certification Badges ──────────────────────────────────────────
+function CertBadges() {
+  return (
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+      {CERTIFICATION_BADGES.map((b, i) => (
+        <span key={i} className="badge" style={{ background: "#f0fdf4", border: "1px solid #d1fae5", fontSize: 10, padding: "4px 10px" }}>
+          {b.icon} {b.name}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ─── KPI Definition Card ──────────────────────────────────────────
+function KPIDefinitionCard({ kpi }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="card" style={{ padding: 14, marginBottom: 8, cursor: "pointer" }} onClick={() => setOpen(!open)}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>{kpi.icon} {kpi.label}</span>
+        <span style={{ fontSize: 11, color: "#6b7280" }}>{open ? "▲ ปิด" : "▼ ดูรายละเอียด"}</span>
+      </div>
+      <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{kpi.meaning}</div>
+      {open && (
+        <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.8, color: "#374151", borderTop: "1px solid #d1fae5", paddingTop: 10 }}>
+          <div><b>สูตร:</b> {kpi.formula}</div>
+          <div><b>เป้าหมาย:</b> {kpi.target}</div>
+          {kpi.benchmark && <div><b>เทียบกับ:</b> {kpi.benchmark}</div>}
+          <div><b>วิธีปรับปรุง:</b></div>
+          <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+            {kpi.howToImprove.map((tip, i) => <li key={i} style={{ fontSize: 12 }}>{tip}</li>)}
+          </ul>
+          <div style={{ marginTop: 6, padding: 8, background: "#f0fdf4", borderRadius: 8, fontSize: 11, color: "#166534" }}>
+            🌿 {kpi.environmentalImpact}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Helpers ───────────────────────────────────────────────────────
 const toNumber = v => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : 0; };
