@@ -701,6 +701,9 @@ export default function CFODashboard() {
   const [entry, setEntry] = useState(createEmptyEntry(new Date().getFullYear()));
   const [savedEntries, setSavedEntries] = useState([]);
   const [toast, setToast] = useState({ msg: "", show: false, type: "success" });
+  const [knowledgeModule, setKnowledgeModule] = useState(null);
+  const [benefitCalc, setBenefitCalc] = useState({ solar: 0, ev: 0, led: 0, foodWaste: 0 });
+  const [benefitResult, setBenefitResult] = useState(null);
   const toastTimer = useRef(null);
 
   const showToast = useCallback((msg, type = "success") => {
@@ -752,10 +755,6 @@ export default function CFODashboard() {
       </div>
     );
   }
-
-  const [knowledgeModule, setKnowledgeModule] = useState(null);
-  const [benefitCalc, setBenefitCalc] = useState({ solar: 0, ev: 0, led: 0, foodWaste: 0 });
-  const [benefitResult, setBenefitResult] = useState(null);
 
   const TABS = [
     { id: "org", icon: "🏢", label: "องค์กร" },
