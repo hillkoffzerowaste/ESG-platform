@@ -763,7 +763,7 @@ export default function CFODashboard() {
     { id: "scope3", icon: "♻️", label: "Scope 3" },
     { id: "summary", icon: "📊", label: "สรุป CFO" },
     { id: "knowledge", icon: "📚", label: "ความรู้" },
-    { id: "benefit", icon: "💰", label: "ผลประโยชน์" },
+    { id: "benefit", icon: "🌿", label: "การเปลี่ยนแปลง" },
   ];
 
   return (
@@ -852,82 +852,107 @@ export default function CFODashboard() {
         )}
         {tab === "benefit" && (
           <div>
-            <div className="section-title">💰 เครื่องคำนวณผลประโยชน์จากการลด GHG</div>
-            <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 16 }}>เลือกมาตรการที่สนใจ กรอกข้อมูล แล้วกดคำนวณเพื่อดูผลตอบแทน</p>
-            <div className="card" style={{ padding: 20, marginBottom: 16 }}>
-              <div className="grid-2">
-                <div className="benefit-card">
-                  <div style={{ fontSize: 24, marginBottom: 4 }}>☀️</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Solar Roof</div>
-                  <label style={{ fontSize: 11, color: "#6b7280" }}>ขนาด (kWp):</label>
-                  <input className="input" type="number" value={benefitCalc.solar || ""} onChange={e => setBenefitCalc(p => ({ ...p, solar: Number(e.target.value) || 0 }))} placeholder="10" />
-                </div>
-                <div className="benefit-card">
-                  <div style={{ fontSize: 24, marginBottom: 4 }}>🚗</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>เปลี่ยนรถ EV</div>
-                  <label style={{ fontSize: 11, color: "#6b7280" }}>จำนวน (คัน):</label>
-                  <input className="input" type="number" value={benefitCalc.ev || ""} onChange={e => setBenefitCalc(p => ({ ...p, ev: Number(e.target.value) || 0 }))} placeholder="1" />
-                </div>
-                <div className="benefit-card">
-                  <div style={{ fontSize: 24, marginBottom: 4 }}>💡</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>LED</div>
-                  <label style={{ fontSize: 11, color: "#6b7280" }}>ค่าไฟปัจจุบัน (kWh/ปี):</label>
-                  <input className="input" type="number" value={benefitCalc.led || ""} onChange={e => setBenefitCalc(p => ({ ...p, led: Number(e.target.value) || 0 }))} placeholder="50000" />
-                </div>
-                <div className="benefit-card">
-                  <div style={{ fontSize: 24, marginBottom: 4 }}>🍽️</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>ลดขยะอาหาร</div>
-                  <label style={{ fontSize: 11, color: "#6b7280" }}>ขยะปัจจุบัน (กก./ปี):</label>
-                  <input className="input" type="number" value={benefitCalc.foodWaste || ""} onChange={e => setBenefitCalc(p => ({ ...p, foodWaste: Number(e.target.value) || 0 }))} placeholder="1000" />
-                </div>
-              </div>
-              <button onClick={() => {
-                const selections = {};
-                if (benefitCalc.solar > 0) selections.solar = { kwp: benefitCalc.solar };
-                if (benefitCalc.ev > 0) selections.ev = { count: benefitCalc.ev, kmPerYear: 20000 };
-                if (benefitCalc.led > 0) selections.led = { currentKwh: benefitCalc.led };
-                if (benefitCalc.foodWaste > 0) selections.foodWaste = { currentKg: benefitCalc.foodWaste };
-                const result = calcCombined(selections);
-                setBenefitResult(result);
-              }} className="btn btn-primary" style={{ marginTop: 12, width: "100%" }}>🔢 คำนวณผลประโยชน์</button>
+            <div className="section-title">🌿 การเปลี่ยนแปลงองค์กรและสิ่งแวดล้อมในระยะยาว</div>
+            <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 16 }}>การดำเนินงาน CFO ไม่ใช่แค่การรายงาน — แต่เป็นจุดเริ่มต้นของการเปลี่ยนแปลงองค์กรอย่างยั่งยืน ตามแนวทางขององค์การบริหารจัดการก๊าซเรือนกระจก (อบก.)</p>
+
+            {/* Section 1: TGO Vision */}
+            <div className="card" style={{ padding: 20, marginBottom: 16, background: "linear-gradient(135deg,#0f4c2a,#166534)", color: "#fff" }}>
+              <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>🏛️ วิสัยทัศน์ของ อบก. ต่อการเปลี่ยนแปลงองค์กร</div>
+              <p style={{ fontSize: 14, opacity: 0.9, lineHeight: 1.7 }}>"การจัดทำคาร์บอนฟุตพริ้นท์ขององค์กร (CFO) เป็นเครื่องมือสำคัญที่ช่วยให้องค์กรเห็นภาพรวมของการปล่อยก๊าซเรือนกระจก นำไปสู่การวางแผนลดอย่างมีประสิทธิภาพ สร้างความได้เปรียบทางการแข่งขัน และสนับสนุนเป้าหมายการเป็นกลางทางคาร์บอน (Carbon Neutrality) และการปล่อยก๊าซเรือนกระจกสุทธิเป็นศูนย์ (Net Zero) ของประเทศ"</p>
+              <div style={{ marginTop: 12, fontSize: 12, opacity: 0.7 }}>— องค์การบริหารจัดการก๊าซเรือนกระจก (องค์การมหาชน)</div>
             </div>
 
-            {benefitResult && (
-              <div className="fade-up">
-                <div className="card" style={{ padding: 20, background: "linear-gradient(135deg,#0f4c2a,#166534)", color: "#fff", marginBottom: 12 }}>
-                  <div style={{ fontSize: 14, opacity: 0.8, marginBottom: 4 }}>ผลลัพธ์รวม</div>
-                  <div className="grid-4" style={{ marginTop: 8 }}>
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 28, fontWeight: 800 }}>{benefitResult.summary.totalAnnualCo2}</div>
-                      <div style={{ fontSize: 11, opacity: 0.7 }}>tCO₂e/ปี</div>
-                    </div>
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 28, fontWeight: 800 }}>{benefitResult.summary.totalAnnualSaving.toLocaleString()}</div>
-                      <div style={{ fontSize: 11, opacity: 0.7 }}>บาท/ปี</div>
-                    </div>
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 28, fontWeight: 800 }}>{benefitResult.summary.totalTrees.toLocaleString()}</div>
-                      <div style={{ fontSize: 11, opacity: 0.7 }}>🌳 ต้นไม้/ปี</div>
-                    </div>
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 28, fontWeight: 800 }}>{benefitResult.summary.totalCreditValue.toLocaleString()}</div>
-                      <div style={{ fontSize: 11, opacity: 0.7 }}>บาท (Carbon Credit)</div>
-                    </div>
-                  </div>
+            {/* Section 2: Long-term Impact */}
+            <div className="section-title">📈 ผลกระทบระยะยาว 3 มิติ</div>
+            <div className="grid-3" style={{ marginBottom: 16 }}>
+              <div className="card" style={{ padding: 18, borderTop: "4px solid #166534" }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🏭</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#14532d", marginBottom: 8 }}>มิติที่ 1: การเปลี่ยนแปลงองค์กร</div>
+                <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.7 }}>
+                  • <b>เพิ่มประสิทธิภาพการใช้ทรัพยากร</b> — การวัดทำให้เห็นจุดที่ใช้พลังงานสูง นำไปสู่การปรับปรุงและลดต้นทุน<br/>
+                  • <b>ปรับเปลี่ยนสู่พลังงานสะอาด</b> — Solar Roof, EV, LED, Biogas ลดการพึ่งพาเชื้อเพลิงฟอสซิล<br/>
+                  • <b>สร้างวัฒนธรรมองค์กรสีเขียว</b> — พนักงานมีส่วนร่วมในการลด Carbon สร้าง Green Culture<br/>
+                  • <b>เพิ่มขีดความสามารถในการแข่งขัน</b> — องค์กรคาร์บอนต่ำได้เปรียบในตลาดโลก
                 </div>
-                {benefitResult.results.map((r, i) => (
-                  <div key={i} className="benefit-card" style={{ padding: 16, marginBottom: 8 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 16 }}>{r.icon} {r.name}</span>
-                      <span style={{ fontWeight: 700, color: "#166534" }}>ลด {r.annualCo2} tCO₂e/ปี</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>
-                      ลงทุน {r.investment.toLocaleString()} บาท | ประหยัด {r.annualCostSaving?.toLocaleString() || r.annualFuelSaving?.toLocaleString() || ""} บาท/ปี{r.paybackYears > 0 ? ` | คืนทุน ${r.paybackYears} ปี` : ""}
-                    </div>
+              </div>
+              <div className="card" style={{ padding: 18, borderTop: "4px solid #2563eb" }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🌍</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#14532d", marginBottom: 8 }}>มิติที่ 2: การเปลี่ยนแปลงสิ่งแวดล้อม</div>
+                <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.7 }}>
+                  • <b>ลดโลกร้อน (Climate Change Mitigation)</b> — การลด GHG โดยตรงช่วยชะลอการเปลี่ยนแปลงสภาพภูมิอากาศ<br/>
+                  • <b>เพิ่มพื้นที่สีเขียว</b> — Carbon Credit สนับสนุนโครงการปลูกป่าและอนุรักษ์<br/>
+                  • <b>ลดมลพิษทางอากาศ</b> — การลดเชื้อเพลิงฟอสซิลช่วยลดฝุ่น PM2.5<br/>
+                  • <b>อนุรักษ์ทรัพยากรธรรมชาติ</b> — Reduce, Reuse, Recycle ลดการใช้ทรัพยากร
+                </div>
+              </div>
+              <div className="card" style={{ padding: 18, borderTop: "4px solid #16a34a" }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>👥</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#14532d", marginBottom: 8 }}>มิติที่ 3: การเปลี่ยนแปลงทางสังคม</div>
+                <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.7 }}>
+                  • <b>สร้างความโปร่งใส</b> — ข้อมูล CFO ตรวจสอบได้โดยผู้ทวนสอบ สร้างความเชื่อมั่น<br/>
+                  • <b>รองรับข้อกำหนดสากล</b> — CBAM (EU), CSRD, ESG Disclosure — ตลาดโลกต้องการ<br/>
+                  • <b>สร้างงานสีเขียว</b> — Green Jobs ในอุตสาหกรรมพลังงานสะอาดและ Sustainability<br/>
+                  • <b>สนับสนุนเป้าหมายประเทศ</b> — Thailand Net Zero 2050, Nationally Determined Contribution (NDC)
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: TGO Certification Journey */}
+            <div className="section-title">📋 เส้นทางสู่การรับรอง อบก.</div>
+            <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+              <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.8, marginBottom: 12 }}>จากข้อมูลที่กรอกในระบบ CFO นี้องค์กรสามารถยื่นขอรับรองคาร์บอนฟุตพริ้นท์ขององค์กรจาก อบก. ได้ โดยกระบวนการมีขั้นตอนดังนี้:</p>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+                {[
+                  { step: "1", title: "เก็บข้อมูล", sub: "Activity Data ครบถ้วน" },
+                  { step: "2", title: "คำนวณ CFO", sub: "ตามหลักเกณฑ์ อบก." },
+                  { step: "3", title: "ทวนสอบ", sub: "โดยผู้ทวนสอบที่ขึ้นทะเบียน" },
+                  { step: "4", title: "รับรอง", sub: "ออกใบรับรอง อบก." },
+                  { step: "5", title: "ต่อยอด", sub: "T-VER / Carbon Label" },
+                ].map((s, i) => (
+                  <div key={i} style={{ flex: 1, minWidth: 120, background: "#f0fdf4", borderRadius: 12, padding: 14, textAlign: "center" }}>
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#166534", color: "#fff", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 800, margin: "0 auto 6px" }}>{s.step}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>{s.title}</div>
+                    <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{s.sub}</div>
                   </div>
                 ))}
               </div>
-            )}
+              <div className="highlight" style={{ background: "#fffde7", borderLeft: "4px solid #f57f17", padding: 14, borderRadius: 8 }}>
+                <p style={{ fontSize: 13, margin: 0, color: "#854d0e" }}><b>💡 ข้อควรรู้:</b> เมื่อองค์กรได้รับการรับรอง CFO จาก อบก. แล้ว การลดก๊าซเรือนกระจกที่ดำเนินการสามารถขอขึ้นทะเบียนเป็นโครงการ T-VER (Thailand Voluntary Emission Reduction) เพื่อขายเป็นคาร์บอนเครดิต สร้างรายได้เสริมให้องค์กร และสนับสนุนการดำเนินงานด้านความยั่งยืนในระยะยาว</p>
+              </div>
+            </div>
+
+            {/* Section 4: KPI & Metrics */}
+            <div className="section-title">📊 KPI ความสำเร็จขององค์กร</div>
+            <div className="grid-2" style={{ marginBottom: 16 }}>
+              {[
+                { icon: "📉", metric: "Carbon Intensity (tCO₂e/ล้านบาท)", desc: "วัดประสิทธิภาพการใช้คาร์บอนต่อมูลค่าทางเศรษฐกิจ — ยิ่งต่ำยิ่งดี", kpi: "ลดลง ≥5% ต่อปี" },
+                { icon: "🎯", metric: "Reduction from Base Year (%)", desc: "วัดความก้าวหน้าลด GHG เทียบปีฐาน 2561 (2018)", kpi: "ลด 50% → 2573" },
+                { icon: "🔄", metric: "Renewable Energy Share (%)", desc: "สัดส่วนพลังงานหมุนเวียน (Solar, Biogas) ต่อพลังงานทั้งหมด", kpi: "เพิ่มขึ้นทุกปี" },
+                { icon: "♻️", metric: "Zero Waste Rate (%)", desc: "สัดส่วนขยะที่นำกลับมาใช้ประโยชน์ (Recycle + Organic) เทียบทั้งหมด", kpi: "≥80%" },
+              ].map((item, i) => (
+                <div key={i} className="card" style={{ padding: 16 }}>
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>{item.icon}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#14532d" }}>{item.metric}</div>
+                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4, lineHeight: 1.6 }}>{item.desc}</div>
+                  <div style={{ marginTop: 8, background: "#dcfce7", color: "#166534", padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700, display: "inline-block" }}>{item.kpi}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Section 5: Beneficiary Statement */}
+            <div className="section-title">👥 ผลกระทบต่อผู้มีส่วนได้เสีย</div>
+            <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 12 }}>การเปลี่ยนแปลงขององค์กรส่งผลดีต่อทุกภาคส่วนอย่างเป็นรูปธรรม</p>
+            <div className="grid-4" style={{ marginBottom: 16 }}>
+              {Object.entries(BENEFICIARY_STATEMENT).map(([key, stmt]) => (
+                <div key={key} className="card" style={{ padding: 16 }}>
+                  <div style={{ fontSize: 28, marginBottom: 6 }}>{stmt.icon}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#14532d", marginBottom: 8 }}>{stmt.title}</div>
+                  {stmt.points.slice(0, 3).map((p, i) => (
+                    <div key={i} style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.6, marginBottom: 4 }}>• {p}</div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
