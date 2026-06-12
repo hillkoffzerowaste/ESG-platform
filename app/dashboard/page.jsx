@@ -753,12 +753,18 @@ export default function CFODashboard() {
     );
   }
 
+  const [knowledgeModule, setKnowledgeModule] = useState(null);
+  const [benefitCalc, setBenefitCalc] = useState({ solar: 0, ev: 0, led: 0, foodWaste: 0 });
+  const [benefitResult, setBenefitResult] = useState(null);
+
   const TABS = [
     { id: "org", icon: "🏢", label: "องค์กร" },
     { id: "scope1", icon: "🔥", label: "Scope 1" },
     { id: "scope2", icon: "⚡", label: "Scope 2" },
     { id: "scope3", icon: "♻️", label: "Scope 3" },
     { id: "summary", icon: "📊", label: "สรุป CFO" },
+    { id: "knowledge", icon: "📚", label: "ความรู้" },
+    { id: "benefit", icon: "💰", label: "ผลประโยชน์" },
   ];
 
   return (
@@ -785,6 +791,12 @@ export default function CFODashboard() {
           }} showToast={showToast} />
         </div>
 
+        {/* Certification Badges */}
+        <CertBadges />
+
+        {/* Gamification Progress */}
+        <GamificationBar entry={entry} />
+
         {/* Tab bar */}
         <div className="tab-bar">
           {TABS.map(t => (
@@ -800,6 +812,125 @@ export default function CFODashboard() {
         {tab === "scope2" && <Scope2Tab entry={entry} setEntry={setEntry} />}
         {tab === "scope3" && <Scope3Tab entry={entry} setEntry={setEntry} />}
         {tab === "summary" && <SummaryTab entry={entry} onSave={handleSave} showToast={showToast} />}
+        {tab === "knowledge" && (
+          <div>
+            <div className="section-title">📚 ความรู้เกี่ยวกับ CFO & Net Zero</div>
+            <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 16 }}>รวม 8 หมวดความรู้เกี่ยวกับ Carbon Footprint for Organization — คลิกเพื่ออ่านเพิ่มเติม</p>
+            <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+              {KNOWLEDGE_MODULES.map((mod) => (
+                <div key={mod.id} className="knowledge-card" style={{ padding: 20, background: "#fff" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                    <span style={{ fontSize: 28 }}>{mod.icon}</span>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: "#14532d" }}>{mod.title}</div>
+                      <span className="badge" style={{ background: mod.tagColor + "20", color: mod.tagColor, fontSize: 9 }}>{mod.tag}</span>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.6, marginBottom: 10 }}>{mod.summary}</p>
+                  {knowledgeModule === mod.id ? (
+                    <div>
+                      <div className="knowledge-content" dangerouslySetInnerHTML={{ __html: mod.content }} />
+                      {mod.faq && mod.faq.length > 0 && (
+                        <div style={{ marginTop: 12 }}>
+                          <h4 style={{ fontSize: 14, color: "#166534" }}>❓ FAQ</h4>
+                          {mod.faq.map((f, i) => (
+                            <div key={i} className="faq-item">
+                              <p style={{ fontWeight: 700, fontSize: 13 }}>{f.q}</p>
+                              <p style={{ fontSize: 13, color: "#6b7280" }}>{f.a}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button onClick={() => setKnowledgeModule(null)} className="btn btn-sm btn-secondary" style={{ marginTop: 10 }}>▲ ปิด</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setKnowledgeModule(mod.id)} className="btn btn-sm btn-primary">📖 อ่านเพิ่มเติม</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {tab === "benefit" && (
+          <div>
+            <div className="section-title">💰 เครื่องคำนวณผลประโยชน์จากการลด GHG</div>
+            <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 16 }}>เลือกมาตรการที่สนใจ กรอกข้อมูล แล้วกดคำนวณเพื่อดูผลตอบแทน</p>
+            <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+              <div className="grid-2">
+                <div className="benefit-card">
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>☀️</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Solar Roof</div>
+                  <label style={{ fontSize: 11, color: "#6b7280" }}>ขนาด (kWp):</label>
+                  <input className="input" type="number" value={benefitCalc.solar || ""} onChange={e => setBenefitCalc(p => ({ ...p, solar: Number(e.target.value) || 0 }))} placeholder="10" />
+                </div>
+                <div className="benefit-card">
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>🚗</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>เปลี่ยนรถ EV</div>
+                  <label style={{ fontSize: 11, color: "#6b7280" }}>จำนวน (คัน):</label>
+                  <input className="input" type="number" value={benefitCalc.ev || ""} onChange={e => setBenefitCalc(p => ({ ...p, ev: Number(e.target.value) || 0 }))} placeholder="1" />
+                </div>
+                <div className="benefit-card">
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>💡</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>LED</div>
+                  <label style={{ fontSize: 11, color: "#6b7280" }}>ค่าไฟปัจจุบัน (kWh/ปี):</label>
+                  <input className="input" type="number" value={benefitCalc.led || ""} onChange={e => setBenefitCalc(p => ({ ...p, led: Number(e.target.value) || 0 }))} placeholder="50000" />
+                </div>
+                <div className="benefit-card">
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>🍽️</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>ลดขยะอาหาร</div>
+                  <label style={{ fontSize: 11, color: "#6b7280" }}>ขยะปัจจุบัน (กก./ปี):</label>
+                  <input className="input" type="number" value={benefitCalc.foodWaste || ""} onChange={e => setBenefitCalc(p => ({ ...p, foodWaste: Number(e.target.value) || 0 }))} placeholder="1000" />
+                </div>
+              </div>
+              <button onClick={() => {
+                const selections = {};
+                if (benefitCalc.solar > 0) selections.solar = { kwp: benefitCalc.solar };
+                if (benefitCalc.ev > 0) selections.ev = { count: benefitCalc.ev, kmPerYear: 20000 };
+                if (benefitCalc.led > 0) selections.led = { currentKwh: benefitCalc.led };
+                if (benefitCalc.foodWaste > 0) selections.foodWaste = { currentKg: benefitCalc.foodWaste };
+                const result = calcCombined(selections);
+                setBenefitResult(result);
+              }} className="btn btn-primary" style={{ marginTop: 12, width: "100%" }}>🔢 คำนวณผลประโยชน์</button>
+            </div>
+
+            {benefitResult && (
+              <div className="fade-up">
+                <div className="card" style={{ padding: 20, background: "linear-gradient(135deg,#0f4c2a,#166534)", color: "#fff", marginBottom: 12 }}>
+                  <div style={{ fontSize: 14, opacity: 0.8, marginBottom: 4 }}>ผลลัพธ์รวม</div>
+                  <div className="grid-4" style={{ marginTop: 8 }}>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 28, fontWeight: 800 }}>{benefitResult.summary.totalAnnualCo2}</div>
+                      <div style={{ fontSize: 11, opacity: 0.7 }}>tCO₂e/ปี</div>
+                    </div>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 28, fontWeight: 800 }}>{benefitResult.summary.totalAnnualSaving.toLocaleString()}</div>
+                      <div style={{ fontSize: 11, opacity: 0.7 }}>บาท/ปี</div>
+                    </div>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 28, fontWeight: 800 }}>{benefitResult.summary.totalTrees.toLocaleString()}</div>
+                      <div style={{ fontSize: 11, opacity: 0.7 }}>🌳 ต้นไม้/ปี</div>
+                    </div>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 28, fontWeight: 800 }}>{benefitResult.summary.totalCreditValue.toLocaleString()}</div>
+                      <div style={{ fontSize: 11, opacity: 0.7 }}>บาท (Carbon Credit)</div>
+                    </div>
+                  </div>
+                </div>
+                {benefitResult.results.map((r, i) => (
+                  <div key={i} className="benefit-card" style={{ padding: 16, marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 16 }}>{r.icon} {r.name}</span>
+                      <span style={{ fontWeight: 700, color: "#166534" }}>ลด {r.annualCo2} tCO₂e/ปี</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>
+                      ลงทุน {r.investment.toLocaleString()} บาท | ประหยัด {r.annualCostSaving?.toLocaleString() || r.annualFuelSaving?.toLocaleString() || ""} บาท/ปี{r.paybackYears > 0 ? ` | คืนทุน ${r.paybackYears} ปี` : ""}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Recent entries */}
         {savedEntries.length > 0 && (
