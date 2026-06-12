@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { PDFParse } from "pdf-parse";
+import { parseTGOSheet } from "@/lib/cfoImport";
 
 const MAX_PREVIEW_CHARS = 6000;
 
@@ -86,12 +87,118 @@ export async function POST(req) {
     const ext = file.name.split(".").pop().toLowerCase();
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    let analysis;
 
+    // ─── If .xlsx, try parsing as TGO Template FIRST ─────────────
+    if (ext === "xlsx" || ext === "xls") {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+      
+      // Get sheet names
+      const sheetNames = [];
+      workbook.eachSheet(sheet => {
+        sheetNames.push(sheet.name);
+      });
+
+      // Check if any sheet name matches TGO form (Fr-01, Fr-03.1, Fr-04.1, Fr-05)
+      const tgoSheetFound = sheetNames.some(name => 
+        /fr-0[1-5]|stationary|electricity|waste/i.test(name)
+      );
+
+      if (tgoSheetFound) {
+        // Parse each sheet using TGO import
+        const parsedSheets = [];
+        
+        for (const sheetName of sheetNames) {
+          const ws = workbook.getWorksheet(sheetName);
+          const sheetRows = [];
+          ws.eachRow(row => {
+            sheetRows.push(row.values.slice(1).map(v => v?.text || v?.result || v || ""));
+          });
+
+          try {
+            const result = parseTGOSheet(sheetRows);
+            if (result && result.data) {
+              parsedSheets.push({
+                sheetName: sheetName,
+                type: result.type,
+                data: result.data,
+                rowCount: sheetRows.length
+              });
+            }
+          } catch (e) {
+            // Skip sheets that don't parse
+          }
+        }
+
+        if (parsedSheets.length > 0) {
+          return Response.json({
+            success: true,
+            fileName: file.name,
+            ext,
+            source: "tgo_template",
+            tgoDetected: true,
+            sheets: parsedSheets,
+            preview: parsedSheets.map(s => 
+              `📋 ${s.sheetName} (${s.type}): ${Array.isArray(s.data) ? s.data.length + ' รายการ' : 'พบข้อมูล'}`
+            ).join("\n")
+          });
+        }
+      }
+
+      // Fallback: try automatic detection on all data
+      const allRows = [];
+      workbook.eachSheet(sheet => {
+        sheet.eachRow(row => {
+          allRows.push(row.values.slice(1).map(v => v?.text || v?.result || v || ""));
+        });
+      });
+      
+      const tgoResult = parseTGOSheet(allRows);
+      if (tgoResult && tgoResult.data) {
+        return Response.json({
+          success: true,
+          fileName: file.name,
+          ext,
+          source: "tgo_auto",
+          tgoDetected: true,
+          sheets: [{
+            sheetName: "auto",
+            type: tgoResult.type,
+            data: tgoResult.data,
+            rowCount: allRows.length
+          }],
+          preview: `ตรวจพบข้อมูล ${tgoResult.type} (${Array.isArray(tgoResult.data) ? tgoResult.data.length + ' รายการ' : 'พบข้อมูล'})`
+        });
+      }
+
+      // Last fallback: use old parser
+      const analysis = summarizeRows(allRows);
+      return Response.json({
+        success: true,
+        fileName: file.name,
+        ext,
+        source: "generic",
+        ...analysis
+      });
+    }
+
+    // ─── CSV / PDF ───────────────────────────────────────────────
+    let analysis;
     if (ext === "csv") {
-      analysis = summarizeRows(parseCsv(buffer.toString("utf8")));
-    } else if (ext === "xlsx") {
-      analysis = summarizeRows(await parseXlsx(buffer));
+      const rows = parseCsv(buffer.toString("utf8"));
+      const tgoResult = parseTGOSheet(rows);
+      if (tgoResult && tgoResult.data) {
+        return Response.json({
+          success: true,
+          fileName: file.name,
+          ext,
+          source: "tgo_csv",
+          tgoDetected: true,
+          sheets: [{ sheetName: "CSV", type: tgoResult.type, data: tgoResult.data, rowCount: rows.length }],
+          preview: `ตรวจพบข้อมูล ${tgoResult.type}`
+        });
+      }
+      analysis = summarizeRows(rows);
     } else if (ext === "pdf") {
       const parser = new PDFParse({ data: buffer });
       const pdfData = await parser.getText();

@@ -647,7 +647,7 @@ function SummaryTab({ entry, onSave, showToast }) {
 }
 
 // ─── Import Upload Zone ──────────────────────────────────────────
-function ImportZone({ onImport, showToast }) {
+function ImportZone({ onImport, showToast, importPreview, setImportPreview }) {
   const fileRef = useRef(null);
   const [dragging, setDragging] = useState(false);
 
@@ -664,12 +664,38 @@ function ImportZone({ onImport, showToast }) {
       const res = await fetch("/api/document-analyze", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Parse failed");
-      showToast(`✅ วิเคราะห์สำเร็จ: ${file.name}`);
+      
+      if (data.tgoDetected && data.sheets?.length > 0) {
+        // Show preview for TGO template files
+        setImportPreview({ fileName: file.name, ...data });
+        showToast(`✅ ตรวจพบ Template อบก. — ${data.sheets.length} Sheet`);
+      } else if (data.metrics) {
+        // Generic file - pass data directly
+        onImport({ type: "generic", data: data.metrics });
+        showToast(`✅ วิเคราะห์สำเร็จ: ${file.name}`);
+      } else {
+        showToast(`✅ วิเคราะห์สำเร็จ: ${file.name}`);
+      }
       return data;
     } catch (error) {
       showToast(`❌ ${error.message}`, "error");
       return null;
     }
+  };
+
+  const confirmImport = () => {
+    if (!importPreview) return;
+    importPreview.sheets.forEach(sheet => {
+      if (sheet.type === "stationary" && Array.isArray(sheet.data)) {
+        onImport({ type: "stationary", data: sheet.data });
+      } else if (sheet.type === "electricity" && sheet.data) {
+        onImport({ type: "electricity", data: sheet.data });
+      } else if (sheet.type === "waste" && sheet.data) {
+        onImport({ type: "waste", data: sheet.data });
+      }
+    });
+    setImportPreview(null);
+    showToast(`✅ นำเข้าข้อมูลเรียบร้อย`);
   };
 
   return (
@@ -688,6 +714,56 @@ function ImportZone({ onImport, showToast }) {
         <div style={{ fontSize: 14, fontWeight: 700, color: "#14532d" }}>ลากไฟล์มาวาง หรือคลิกเพื่อเลือก</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>รองรับไฟล์ TGO Template (Fr-03, Fr-04, Fr-05), บิลค่าไฟ, CSV</div>
       </div>
+
+      {/* Preview Modal for TGO Template */}
+      {importPreview && (
+        <div className="card" style={{ marginTop: 12, padding: 16, border: "2px solid #166534" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#14532d" }}>
+              📋 Preview: {importPreview.fileName}
+            </div>
+            <button onClick={() => setImportPreview(null)} className="btn btn-sm btn-secondary">✕ ปิด</button>
+          </div>
+          
+          {importPreview.sheets.map((sheet, i) => (
+            <div key={i} style={{ marginBottom: 10, padding: 10, background: "#f0fdf4", borderRadius: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#166534", marginBottom: 4 }}>
+                {sheet.sheetName} — {sheet.type === "stationary" ? "เชื้อเพลิง (Stationary)" : sheet.type === "electricity" ? "ไฟฟ้า" : sheet.type === "waste" ? "ขยะ/น้ำเสีย" : sheet.type}
+              </div>
+              <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.7 }}>
+                {Array.isArray(sheet.data) ? (
+                  sheet.data.slice(0, 10).map((item, j) => (
+                    <div key={j}>
+                      {item.fuelType && `• ${item.fuelType}: ${item.quantity} ${item.unit || ""}`}
+                      {item.vehicleType && `• ${item.vehicleType}: ${item.distanceKm || ""} กม. / ${item.fuelQuantity || ""} ลิตร`}
+                      {item.fuelType && item.quantity === undefined && `• ${JSON.stringify(item)}`}
+                    </div>
+                  ))
+                ) : (
+                  <div>
+                    {sheet.data.monthlyKwh && `• ไฟฟ้า ${sheet.data.totalKwh} kWh`}
+                    {sheet.data.gridArea && `• Grid: ${sheet.data.gridArea}`}
+                    {sheet.data.waste && `• ขยะ: ${JSON.stringify(sheet.data.waste)}`}
+                    {sheet.data.wastewater && `• น้ำเสีย: ${sheet.data.wastewater.volumeM3} m³`}
+                  </div>
+                )}
+                {Array.isArray(sheet.data) && sheet.data.length > 10 && (
+                  <div style={{ color: "#6b7280", fontSize: 11 }}>...และอีก {sheet.data.length - 10} รายการ</div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+            <button onClick={confirmImport} className="btn btn-primary" style={{ flex: 1 }}>
+              ✅ ยืนยันนำเข้าข้อมูล
+            </button>
+            <button onClick={() => setImportPreview(null)} className="btn btn-secondary">
+              ❌ ยกเลิก
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -704,6 +780,7 @@ export default function CFODashboard() {
   const [knowledgeModule, setKnowledgeModule] = useState(null);
   const [benefitCalc, setBenefitCalc] = useState({ solar: 0, ev: 0, led: 0, foodWaste: 0 });
   const [benefitResult, setBenefitResult] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
   const toastTimer = useRef(null);
 
   const showToast = useCallback((msg, type = "success") => {
@@ -787,7 +864,18 @@ export default function CFODashboard() {
               setEntry(prev => ({ ...prev, stationaryCombustion: [...(prev.stationaryCombustion || []), ...data.data] }));
               showToast(`✅ นำเข้า ${data.data.length} รายการ`);
             }
-          }} showToast={showToast} />
+            if (data?.type === "electricity" && data.data?.monthlyKwh) {
+              setEntry(prev => ({ ...prev, purchasedElectricity: { ...prev.purchasedElectricity, monthlyKwh: data.data.monthlyKwh, gridArea: data.data.gridArea || prev.purchasedElectricity?.gridArea } }));
+              showToast(`✅ นำเข้าข้อมูลไฟฟ้า ${data.data.totalKwh} kWh`);
+            }
+            if (data?.type === "waste" && data.data?.waste) {
+              setEntry(prev => ({ ...prev, wasteGeneration: { ...prev.wasteGeneration, ...data.data.waste } }));
+              if (data.data.wastewater?.volumeM3 > 0) {
+                setEntry(prev => ({ ...prev, wastewater: { ...prev.wastewater, volumeM3: data.data.wastewater.volumeM3, treatmentMethod: data.data.wastewater.treatmentMethod } }));
+              }
+              showToast(`✅ นำเข้าข้อมูลขยะและน้ำเสีย`);
+            }
+          }} showToast={showToast} importPreview={importPreview} setImportPreview={setImportPreview} />
         </div>
 
         {/* Certification Badges */}
