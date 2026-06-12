@@ -541,7 +541,22 @@ function SummaryTab({ entry, onSave, showToast }) {
 
   return (
     <div>
-      <div className="section-title">📊 สรุป Carbon Footprint ขององค์กร</div>
+          <div className="section-title">📊 สรุป Carbon Footprint ขององค์กร</div>
+
+      {/* Carbon Intensity */}
+      {result?.carbonIntensity?.value > 0 && (
+        <div className="card" style={{ padding: 16, marginBottom: 12, border: "2px solid #166534", background: "linear-gradient(135deg,#f0fdf4,#fff)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#6b7280" }}>📈 Carbon Intensity</span>
+              <div style={{ fontSize: 24, fontWeight: 800, color: "#166534" }}>{result.carbonIntensity.value} <span style={{ fontSize: 13, fontWeight: 500 }}>{result.carbonIntensity.unit}</span></div>
+            </div>
+            <div style={{ fontSize: 11, color: "#6b7280" }}>
+              ผลผลิต: {result.carbonIntensity.productOutput.toLocaleString()} หน่วย
+            </div>
+          </div>
+        </div>
+      )}
 
       {!result?.total?.tCO2e ? (
         <div className="card" style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>
